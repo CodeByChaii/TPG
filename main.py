@@ -60,17 +60,27 @@ PHOTO_FAVOR_KEYWORDS = [
     "property",
 ]
 
-TOKEN_TTL_DAYS = int(os.getenv("REMEMBER_TOKEN_DAYS", "14"))
-TOKEN_ROTATE_BUFFER_DAYS = int(os.getenv("REMEMBER_TOKEN_ROTATE_BUFFER_DAYS", "3"))
-DEFAULT_PLACEHOLDER_IMAGE = os.getenv(
+# Load secrets from local .env or Streamlit secrets
+load_dotenv()
+
+def get_config_value(key, default=None):
+    """Prefer Streamlit secrets when deployed, fall back to env vars locally."""
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+    return os.getenv(key, default)
+
+TOKEN_TTL_DAYS = int(get_config_value("REMEMBER_TOKEN_DAYS", "14"))
+TOKEN_ROTATE_BUFFER_DAYS = int(get_config_value("REMEMBER_TOKEN_ROTATE_BUFFER_DAYS", "3"))
+DEFAULT_PLACEHOLDER_IMAGE = get_config_value(
     "FALLBACK_PHOTO_URL",
     "https://placehold.co/600x360?text=Thai+Property"
 )
 
-# Load secrets from local .env or Streamlit secrets
-load_dotenv()
-DB_URL = os.getenv("DATABASE_URL")
-GOOGLE_TRANSLATE_API_KEY = os.getenv("GOOGLE_TRANSLATE_API_KEY")
+DB_URL = get_config_value("DATABASE_URL")
+GOOGLE_TRANSLATE_API_KEY = get_config_value("GOOGLE_TRANSLATE_API_KEY")
 
 # --- CONFIG ---
 st.set_page_config(page_title="Thai Real Estate Sniper", page_icon="🏙️", layout="wide")
@@ -83,22 +93,27 @@ st.markdown("""
     header {visibility: hidden;}
 
     :root {
-        --surface: #f4f4f5;
-        --surface-alt: #ffffff;
-        --panel: #ffffff;
-        --border: #e4e4e7;
-        --text: #111827;
-        --text-muted: #6b7280;
-        --primary: #111827;
-        --primary-light: rgba(17, 24, 39, 0.08);
-        --accent: #16a34a;
-        --danger: #ef4444;
+        --surface: #E9F4F0;
+        --surface-alt: #F7FCFA;
+        --panel: #FFFFFF;
+        --border: #D9E8E1;
+        --border-strong: #A4D5BF;
+        --text: #0F172A;
+        --text-muted: #6B7280;
+        --eyebrow: #94A3B8;
+        --primary: #1AA7EC;
+        --accent: #2FB47C;
+        --accent-strong: #1E9C66;
+        --danger: #F87171;
+        --shadow-soft: 0 18px 40px rgba(31, 102, 91, 0.16);
     }
 
     body {
-        background-color: var(--surface);
+        background: radial-gradient(circle at 10% 10%, rgba(46,196,182,0.18), transparent 45%),
+                    radial-gradient(circle at 80% 0%, rgba(16,185,129,0.18), transparent 35%),
+                    linear-gradient(180deg, #F7FCFA, #ECF5F1 65%, #E7F3EF);
         color: var(--text);
-        font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+        font-family: 'Inter', 'SF Pro Display', 'Noto Sans Thai', sans-serif;
     }
 
     ::selection {
@@ -119,12 +134,31 @@ st.markdown("""
     .top-nav {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        border: 1px solid var(--border);
-        background: var(--panel);
-        border-radius: 16px;
-        padding: 12px;
+        align-items: flex-start;
+        border: 1px solid rgba(255,255,255,0.6);
+        background: linear-gradient(140deg, rgba(47,180,124,0.18), rgba(26,167,236,0.18));
+        border-radius: 26px;
+        padding: 18px;
         flex-wrap: wrap;
+        gap: 16px;
+        box-shadow: var(--shadow-soft);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(8px);
+    }
+
+    .brand-lockup {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .brand-lockup .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 11px;
+        color: var(--eyebrow);
     }
 
     .brand-lockup h1 {
@@ -135,9 +169,7 @@ st.markdown("""
 
     .brand-lockup span {
         color: var(--text-muted);
-        font-size: 13px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        font-size: 14px;
     }
 
     .nav-actions {
@@ -147,71 +179,411 @@ st.markdown("""
         flex-wrap: wrap;
     }
 
-    .nav-chip {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        padding: 6px 14px;
-        font-size: 12px;
+    .hero-shell {
+        margin-top: 12px;
+        padding: 24px 26px 28px;
+        border-radius: 30px;
+        border: none;
+        min-height: 320px;
+        background: linear-gradient(145deg, #EBF5F0, #D7EAFB);
+        box-shadow: 0 25px 45px rgba(101, 163, 136, 0.35);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 22px;
+    }
+
+    .hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .hero-profile {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .hero-eyebrow {
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text);
+        letter-spacing: 0.22em;
+        font-size: 14px;
+        color: rgba(15, 23, 42, 0.55);
     }
 
-    .heart-control {
-        min-width: 110px;
-    }
-
-    .heart-control button {
-        width: 100%;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: var(--panel);
-        color: var(--text);
+    .hero-profile h2 {
+        margin: 4px 0 2px;
+        font-size: 32px;
+        line-height: 36px;
+        color: #0F172A;
         font-weight: 600;
     }
 
-    .heart-control.saved-active button {
-        background: var(--accent);
+    .hero-profile p {
+        margin: 0;
+        color: rgba(15, 23, 42, 0.65);
+        font-size: 15px;
+    }
+
+    .hero-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .hero-avatar {
+        width: 46px;
+        height: 46px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.25);
+        border: 1px solid rgba(255,255,255,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: #ffffff;
+        font-weight: 700;
+        font-size: 18px;
+    }
+
+    .hero-saved-group {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+    }
+
+    .saved-pill {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 18px;
+        border-radius: 999px;
+        min-width: 150px;
+        background: rgba(255,255,255,0.55);
+        border: 1px solid rgba(15,23,42,0.08);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+        color: #0F172A;
+    }
+
+    .saved-pill.initials-pill {
+        min-width: 90px;
+        justify-content: center;
+        font-weight: 600;
+    }
+
+    .saved-pill .pill-label {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: rgba(15,23,42,0.55);
+    }
+
+    .saved-pill .pill-value {
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    .hero-stat-card {
+        min-width: 120px;
+        border-radius: 18px;
+        padding: 10px 14px;
+        border: 1px solid rgba(255,255,255,0.55);
+        background: rgba(255,255,255,0.18);
+        color: #ffffff;
+        text-align: right;
+    }
+
+    .hero-stat-card span {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        display: block;
+    }
+
+    .hero-stat-card strong {
+        font-size: 22px;
+        display: block;
+    }
+
+    .hero-search-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .hero-search-bar {
+        position: relative;
+        border-radius: 999px;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: rgba(255,255,255,0.92);
+        box-shadow: 0 18px 32px rgba(15,23,42,0.12);
+        padding: 0 60px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+    }
+
+    .hero-search-bar::before {
+        content: "";
+        position: absolute;
+        left: 24px;
+        top: 50%;
+        width: 20px;
+        height: 20px;
+        background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%230F172A"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/%3E%3C/svg%3E') center/contain no-repeat;
+        transform: translateY(-50%);
+        opacity: 0.65;
+    }
+
+    .hero-search-bar div[data-testid="stTextInput"] {
+        width: 100%;
+    }
+
+    .hero-search-bar label {
+        display: none;
+    }
+
+    .hero-search-bar div[data-baseweb="input"] {
+        border: none;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-search-bar input {
+        border: none !important;
+        background: transparent !important;
+        font-size: 16px;
+        color: #0F172A;
+        padding: 0;
+        font-weight: 500;
+    }
+
+    .hero-search-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .hero-filter-chip,
+    .hero-voice-pill {
+        border: none;
+        border-radius: 999px;
+        height: 42px;
+        padding: 0 18px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .hero-filter-chip {
+        background: rgba(255,255,255,0.6);
+        color: #0F172A;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+        border: 1px solid rgba(15,23,42,0.08);
+    }
+
+    .hero-filter-chip::before {
+        content: "";
+        width: 18px;
+        height: 18px;
+        background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%230F172A"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10m-5 6h6"/%3E%3C/svg%3E') center/contain no-repeat;
+    }
+
+    .hero-voice-pill {
+        background: #0F172A;
+        color: #F5FDF9;
+        box-shadow: 0 10px 24px rgba(15,23,42,0.25);
+    }
+
+    .hero-voice-pill::before {
+        content: "";
+        width: 18px;
+        height: 18px;
+        background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 4.5v7m0 0a2.25 2.25 0 0 0 2.25-2.25V7.5A2.25 2.25 0 0 0 12 5.25m0 6.25a2.25 2.25 0 0 1-2.25-2.25V7.5A2.25 2.25 0 0 1 12 5.25M19.5 12a7.5 7.5 0 1 1-15 0"/%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 19.5V21"/%3E%3C/svg%3E') center/contain no-repeat;
+    }
+
+    .hero-filter-chip:hover,
+    .hero-voice-pill:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 26px rgba(15,23,42,0.12);
+    }
+
+    .hero-toolbar {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        margin-top: 12px;
+    }
+
+    .hero-category-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .hero-category-stack div[data-testid="stButton"] {
+        width: 100%;
+    }
+
+    .hero-category-stack div[data-testid="stButton"] button {
+        width: 100%;
+        border-radius: 18px;
+        border: 1px solid rgba(15,23,42,0.06);
+        background: rgba(255,255,255,0.75);
+        color: #0F172A;
+        font-weight: 600;
+        justify-content: flex-start;
+        letter-spacing: 0.02em;
+        padding: 14px 18px;
+        box-shadow: 0 14px 28px rgba(15,23,42,0.08);
+    }
+
+    .hero-category-stack div[data-testid="stButton"] button[kind="primary"],
+    .hero-category-stack div[data-testid="stButton"] button[data-testid="baseButton-primary"] {
+        background: #0F172A;
+        color: #F5FDF9;
+        border-color: #0F172A;
+        box-shadow: 0 18px 32px rgba(15,23,42,0.2);
+    }
+
+    .hero-category-stack div[data-testid="stButton"] button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .hero-dropdown-col div[data-testid="stButton"] button {
+        padding: 12px 18px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.18);
+        border: 1px solid rgba(255,255,255,0.45);
+        font-weight: 600;
+        color: #ffffff;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        width: 100%;
+    }
+
+    .top-control-row {
+        margin-top: 18px;
+    }
+
+    .top-control-row div[data-testid="column"] > div > div {
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        padding: 10px 14px;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .top-control-row div[data-testid="stSelectbox"] label,
+    .top-control-row div[data-testid="stCheckbox"] label {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--eyebrow);
+    }
+
+    .top-control-row div[data-testid="stCheckbox"] > div > label {
+        gap: 8px;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .top-control-row button {
+        border-radius: 999px !important;
+        border: 1px solid var(--border) !important;
+        font-weight: 600 !important;
+    }
+
+    .nav-chip,
+    .heart-control button,
+    .pill-link,
+    .cta-heart {
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--text);
+        font-size: 13px;
+        padding: 8px 18px;
+        font-weight: 600;
+        box-shadow: 0 12px 28px rgba(15,23,42,0.08);
+    }
+
+    .heart-control {
+        min-width: 120px;
+    }
+
+    .heart-control.saved-active button,
+    .cta-heart.saved {
+        background: var(--accent);
         border-color: var(--accent);
+        color: #f0fdf4;
+        box-shadow: 0 14px 30px rgba(31,173,116,0.35);
     }
 
     .metric-row {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 18px;
-        margin-bottom: 10px;
+        margin: 20px 0;
     }
 
     .metric-pill {
-        padding: 18px;
+        padding: 20px;
         background: var(--panel);
-        border-radius: 18px;
-        border: 1px solid var(--border);
-        box-shadow: 0 8px 16px rgba(17, 24, 39, 0.08);
+        border-radius: 26px;
+        border: 1px solid rgba(255,255,255,0.9);
+        box-shadow: var(--shadow-soft);
     }
 
     .metric-pill h3 {
-        margin: 0;
-        font-size: 30px;
+        margin: 6px 0 0;
+        font-size: 32px;
         color: var(--text);
     }
 
     .metric-pill span {
-        color: var(--text-muted);
-        font-size: 13px;
+        color: var(--eyebrow);
+        font-size: 12px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.16em;
     }
 
     .filter-card {
-        padding: 18px;
+        padding: 24px;
         background: var(--panel);
-        border-radius: 18px;
-        border: 1px solid var(--border);
-        margin-bottom: 18px;
-        box-shadow: 0 8px 16px rgba(17, 24, 39, 0.06);
+        border-radius: 28px;
+        border: 1px solid rgba(255,255,255,0.9);
+        margin-bottom: 22px;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .active-keyword-pill {
+        display: inline-flex;
+        justify-content: flex-end;
+        width: 100%;
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: 1px dashed var(--border-strong);
+        background: var(--surface-alt);
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--eyebrow);
+        gap: 6px;
+    }
+
+    .active-keyword-pill .pill-icon {
+        font-size: 14px;
     }
 
     .filter-card [data-baseweb="slider"] {
@@ -219,21 +591,21 @@ st.markdown("""
     }
 
     .filter-card label {
-        color: var(--text-muted);
-        font-size: 13px;
+        color: var(--eyebrow);
+        font-size: 11px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.18em;
     }
 
     .property-grid-row div[data-testid="stHorizontalBlock"] {
         display: flex;
-        flex-wrap: wrap;
-        gap: 22px !important;
+        flex-direction: column;
+        gap: 20px !important;
     }
 
     .property-grid-row div[data-testid="column"] {
-        flex: 1 1 calc(33.333% - 22px);
-        min-width: 280px;
+        flex: 1 1 100%;
+        min-width: 0;
         display: flex;
     }
 
@@ -243,17 +615,15 @@ st.markdown("""
     }
 
     .property-card {
-        border-radius: 16px;
-        border: 1px solid var(--border);
-        background: var(--panel);
-        padding: 12px 14px 14px 14px;
-        margin-bottom: 14px;
-        box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+        border-radius: 32px;
+        border: 1px solid rgba(255,255,255,0.9);
+        background: #fbfefd;
+        padding: 16px;
+        margin-bottom: 18px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        min-height: 420px;
-        height: 100%;
+        gap: 18px;
     }
 
     .card-detail-link {
@@ -276,66 +646,72 @@ st.markdown("""
     .photo-link {
         display: block;
         position: relative;
-        border-radius: 16px;
+        border-radius: 24px;
         overflow: hidden;
         border: 1px solid var(--border);
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
     }
 
     .photo-link img {
         width: 100%;
-        height: 180px;
+        height: 220px;
         object-fit: cover;
         display: block;
-        filter: saturate(1.08);
-        transition: transform 0.18s ease;
+        filter: saturate(1.05);
+        transition: transform 0.25s ease;
     }
 
     .photo-link:hover img {
-        transform: scale(1.02);
+        transform: scale(1.04);
     }
 
     .photo-link .photo-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.6) 100%);
-        color: var(--surface-alt);
+        background: linear-gradient(180deg, rgba(11,25,19,0.1) 0%, rgba(11,25,19,0.75) 100%);
+        color: #ffffff;
         display: flex;
-        align-items: flex-end;
         justify-content: space-between;
-        padding: 14px;
-        gap: 8px;
+        align-items: flex-start;
+        padding: 16px;
     }
 
     .photo-overlay .overlay-pill {
-        background: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.95);
         border-radius: 999px;
-        padding: 4px 12px;
-        font-size: 12px;
-        letter-spacing: 0.08em;
+        padding: 6px 16px;
+        font-size: 11px;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
-        border: 1px solid var(--border);
-        color: var(--text);
+        border: none;
+        color: var(--accent-strong);
     }
 
     .photo-overlay .overlay-link {
         font-weight: 600;
-        font-size: 12px;
+        font-size: 13px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--surface-alt);
+        letter-spacing: 0.1em;
+        color: #ffffff;
+    }
+
+    .card-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
     }
 
     .sale-pill {
-        margin-top: 10px;
+        margin-top: 6px;
         display: inline-flex;
-        padding: 6px 12px;
+        padding: 6px 14px;
         border-radius: 999px;
-        background: var(--surface);
-        border: 1px solid var(--border);
+        background: rgba(47,180,124,0.12);
+        border: 1px solid var(--border-strong);
         font-size: 12px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text);
+        letter-spacing: 0.12em;
+        color: var(--accent-strong);
     }
 
     .property-card h4 {
@@ -361,19 +737,104 @@ st.markdown("""
     .card-tags {
         display: flex;
         flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .location-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    .rating-pill {
+        padding: 4px 10px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.8);
+        border: 1px solid rgba(15,23,42,0.06);
+        font-size: 12px;
+        color: var(--accent-strong);
+        font-weight: 600;
+    }
+
+    .card-contact-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .contact-chip {
+        padding: 10px 16px;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text);
+        display: inline-flex;
+        align-items: center;
         gap: 6px;
+    }
+
+    .card-cta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(15,23,42,0.08);
+    }
+
+    .price-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .price-stack span {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--eyebrow);
+    }
+
+    .price-stack strong {
+        font-size: 26px;
+        color: var(--text);
+    }
+
+    .buy-pill {
+        padding: 14px 28px;
+        border-radius: 18px;
+        border: none;
+        background: linear-gradient(120deg, #20B486, #1AA7EC);
+        color: #ffffff;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 12px 24px rgba(32,180,134,0.35);
+    }
+
+    .buy-pill .pill-icon {
+        font-size: 16px;
     }
 
     .type-chip {
         display: inline-flex;
-        padding: 5px 12px;
+        padding: 6px 14px;
         border-radius: 999px;
         border: 1px solid var(--border);
-        color: var(--text);
+        color: var(--primary);
         font-size: 12px;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        background: var(--surface);
+        background: var(--surface-alt);
     }
 
     .location-line {
@@ -429,16 +890,16 @@ st.markdown("""
     .map-icon {
         width: 34px;
         height: 34px;
-        border-radius: 10px;
+        border-radius: 12px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        color: var(--text);
+        color: var(--accent-strong);
         text-decoration: none;
         border: 1px solid var(--border);
-        background: var(--panel);
-        box-shadow: none;
+        background: var(--surface-alt);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
     }
 
     .map-icon span {
@@ -522,33 +983,33 @@ st.markdown("""
         margin-top: 4px;
     }
 
-    .card-info-grid {
+    .compact-meta-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 10px;
-        margin-top: 6px;
+        gap: 12px;
+        margin-top: 12px;
     }
 
-    .card-info-grid div {
+    .compact-meta-grid div {
         background: var(--surface-alt);
         border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 10px 12px;
-        box-shadow: 0 6px 12px rgba(17, 24, 39, 0.04);
+        border-radius: 18px;
+        padding: 12px 14px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
     }
 
-    .card-info-grid span {
+    .compact-meta-grid span {
         font-size: 11px;
-        letter-spacing: 0.08em;
-        color: var(--text-muted);
+        letter-spacing: 0.14em;
+        color: var(--eyebrow);
         text-transform: uppercase;
     }
 
-    .card-divider {
-        height: 1px;
-        width: 100%;
-        background: linear-gradient(90deg, rgba(148,163,184,0), rgba(148,163,184,0.4), rgba(148,163,184,0));
-        margin: 4px 0;
+    .compact-meta-grid strong {
+        display: block;
+        font-size: 16px;
+        color: var(--text);
+        margin-top: 6px;
     }
 
     .room-icon-row {
@@ -643,67 +1104,69 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 12px;
+        gap: 16px;
     }
 
-    .compact-meta-grid {
+    .card-stat-row {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
         margin-top: 6px;
-        min-height: 108px;
     }
 
-    .compact-meta-grid .meta-chip {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 8px 10px;
+    .stat-chip {
+        background: rgba(15,23,42,0.06);
+        border-radius: 16px;
+        padding: 10px 14px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
     }
 
-    .compact-meta-grid .meta-chip span {
+    .stat-chip span {
         display: block;
         font-size: 10px;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--text-muted);
+        color: var(--eyebrow);
     }
 
-    .compact-meta-grid .meta-chip strong {
+    .stat-chip strong {
         display: block;
-        font-size: 15px;
+        font-size: 17px;
         color: var(--text);
+        margin-top: 4px;
     }
 
     .card-footer-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 10px;
-        flex-wrap: nowrap;
+        gap: 12px;
+        flex-wrap: wrap;
         margin-top: auto;
+        border-top: 1px solid rgba(15,23,42,0.08);
+        padding-top: 12px;
     }
 
     .card-footer-actions {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         flex-wrap: wrap;
         align-items: center;
         justify-content: flex-end;
     }
 
-    .cta-pill {
+    .sale-pill {
+        margin-top: 6px;
         display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 18px;
-        border-radius: 999px;
-        border: 1px solid rgba(59, 130, 246, 0.4);
-        background: rgba(59, 130, 246, 0.15);
-        color: #dbeafe;
-        font-weight: 600;
-        text-decoration: none;
-        font-size: 13px;
+        padding: 8px 18px;
+        border-radius: 18px;
+        background: rgba(47,180,124,0.12);
+        border: none;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--accent-strong);
+    }
     }
 
     .cta-pill.filled {
@@ -740,31 +1203,36 @@ st.markdown("""
         margin: 12px 0;
     }
 
-    .detail-hero {
-        position: relative;
+    .cta-heart {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+    }
+
+    .price-chip {
+        min-width: 140px;
+        padding: 12px 16px;
         border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid rgba(148, 163, 184, 0.2);
+        border: none;
+        background: #0c2a1f;
+        text-align: right;
+        color: #f8fafc;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
     }
 
-    .detail-hero img {
-        width: 100%;
-        max-height: 420px;
-        object-fit: cover;
-        display: block;
+    .price-chip .primary {
+        font-size: 22px;
+        font-weight: 700;
+        color: #ffffff;
     }
 
-    .detail-hero-overlay {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg, rgba(2,6,23,0.05) 0%, rgba(2,6,23,0.85) 100%);
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        padding: 18px;
-        gap: 12px;
+    .price-chip .secondary {
+        font-size: 11px;
+        color: rgba(255,255,255,0.68);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
     }
-
     .detail-hero-overlay h2 {
         margin: 4px 0;
         font-size: 28px;
@@ -839,27 +1307,27 @@ st.markdown("""
         margin-top: 12px;
     }
 
-    .pill-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 18px;
-        border-radius: 999px;
+    .price-chip {
+        min-width: 150px;
+        padding: 10px 16px;
+        border-radius: 20px;
         border: 1px solid var(--border);
-        color: var(--text);
-        font-weight: 600;
-        text-decoration: none;
-        background: var(--panel);
+        background: var(--surface-alt);
+        text-align: right;
     }
 
-    .cta-heart {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 18px;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: var(--panel);
+    .price-chip .primary {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .price-chip .secondary {
+        font-size: 11px;
+        color: var(--eyebrow);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
         color: var(--text);
         text-decoration: none;
         font-weight: 600;
@@ -888,7 +1356,7 @@ st.markdown("""
         position: relative;
         height: 10px;
         border-radius: 999px;
-        background: #e5e7eb;
+        background: rgba(15,23,42,0.08);
         box-shadow: inset 0 1px 2px rgba(17, 24, 39, 0.04);
     }
 
@@ -899,22 +1367,23 @@ st.markdown("""
         height: 18px;
         border-radius: 2px;
         background: var(--accent);
-        box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.18);
+        box-shadow: 0 0 0 5px rgba(47, 180, 124, 0.25);
     }
 
     .price-bar-labels {
         display: flex;
         justify-content: space-between;
         font-size: 10px;
-        color: var(--text-muted);
+        color: var(--eyebrow);
         margin-top: 4px;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
     }
 
     .price-compare {
         margin-top: 6px;
         font-size: 13px;
         font-weight: 600;
+        color: var(--text-muted);
     }
 
     .price-compare.good {color: var(--accent);}
@@ -923,32 +1392,42 @@ st.markdown("""
 
     .value-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        margin-top: 6px;
-        min-height: 82px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        margin-top: 16px;
     }
 
     .value-chip {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 10px 12px;
+        background: #0f2c21;
+        border-radius: 22px;
+        padding: 16px;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 8px;
+        color: #e0fbea;
     }
 
-    .value-chip span {
-        font-size: 10px;
-        letter-spacing: 0.08em;
+    .value-chip-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .value-chip .value-label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: var(--text-muted);
+        color: rgba(255,255,255,0.65);
+    }
+
+    .value-chip .value-icon {
+        font-size: 16px;
+        line-height: 1;
     }
 
     .value-chip strong {
-        font-size: 16px;
-        color: var(--accent);
+        font-size: 22px;
+        color: #5ef1b1;
     }
 
     .thumb-row {
@@ -974,166 +1453,6 @@ st.markdown("""
         display: block;
     }
 
-    /* --- Minimal monochrome palette override --- */
-    :root {
-        --surface: #050505;
-        --surface-alt: #080808;
-        --panel: #101010;
-        --border: #1c1c1c;
-        --text: #f5f5f5;
-        --text-muted: #9ca3af;
-        --primary: #22c55e;
-        --primary-light: rgba(34, 197, 94, 0.18);
-        --accent: #22c55e;
-        --danger: #ef4444;
-    }
-
-    body {
-        background-color: var(--surface);
-        color: var(--text);
-    }
-
-    .top-nav {
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 18px;
-    }
-
-    .brand-lockup h1,
-    .brand-lockup span {
-        color: var(--text);
-    }
-
-    .brand-lockup span,
-    .map-action-label,
-    .login-hint {
-        color: var(--text-muted);
-    }
-
-    .nav-chip,
-    .heart-control button {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        color: var(--text);
-    }
-
-    .heart-control button.saved,
-    .heart-control.saved-active button {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: #050505;
-    }
-
-    .property-card {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
-    }
-
-    .photo-link {
-        border-color: var(--border);
-    }
-
-    .photo-overlay {
-        background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.75) 100%);
-    }
-
-    .photo-overlay .overlay-pill,
-    .photo-overlay .overlay-link {
-        background: rgba(0, 0, 0, 0.55);
-        border-color: rgba(255, 255, 255, 0.22);
-    }
-
-    .sale-pill,
-    .type-chip {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        color: var(--accent);
-        letter-spacing: 0.08em;
-    }
-
-    .price-chip .primary {
-        color: var(--text);
-    }
-
-    .price-chip .secondary {
-        color: var(--text-muted);
-    }
-
-    .map-icon {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--accent);
-    }
-
-    .map-icon span {
-        color: var(--accent);
-    }
-
-    .compact-meta-grid .meta-chip,
-    .value-chip {
-        background: #0d0d0d;
-        border: 1px solid var(--border);
-    }
-
-    .value-chip span,
-    .compact-meta-grid .meta-chip span {
-        color: var(--text-muted);
-    }
-
-    .value-chip strong,
-    .compact-meta-grid .meta-chip strong {
-        color: var(--text);
-        letter-spacing: 0.02em;
-    }
-
-    .value-chip strong {
-        color: var(--accent);
-    }
-
-    .price-bar-track {
-        background: #1e1e1e;
-    }
-
-    .price-bar-indicator {
-        background: var(--accent);
-        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
-    }
-
-    .price-compare,
-    .pricing-hint {
-        color: var(--text-muted);
-    }
-
-    .price-compare.good,
-    .pricing-hint.good {
-        color: var(--accent);
-    }
-
-    .price-compare.bad,
-    .pricing-hint.bad {
-        color: var(--danger);
-    }
-
-    .card-footer-row {
-        border-top: 1px solid var(--border);
-        padding-top: 10px;
-    }
-
-    .cta-heart {
-        border-color: var(--border);
-        background: transparent;
-        color: var(--text);
-    }
-
-    .cta-heart.saved {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: #050505;
-    }
-
-    .thumb-link.active {
-        border-color: var(--primary);
-    }
 
     .modal-shell {
         background: rgba(5, 10, 23, 0.9);
@@ -1285,6 +1604,12 @@ st.markdown("""
         height: 100%;
     }
 
+    @media (min-width: 900px) {
+        .property-grid-row div[data-testid="column"] {
+            flex: 1 1 calc(50% - 20px);
+        }
+    }
+
     @media (max-width: 1100px) {
         .property-grid-row div[data-testid="column"] {
             flex: 1 1 calc(50% - 22px);
@@ -1301,6 +1626,20 @@ st.markdown("""
             align-items: flex-start;
         }
 
+        .card-cta-row {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .price-stack {
+            width: 100%;
+        }
+
+        .buy-pill {
+            width: 100%;
+            justify-content: center;
+        }
+
         .property-grid-row div[data-testid="column"] {
             flex: 1 1 100%;
         }
@@ -1308,6 +1647,37 @@ st.markdown("""
         .photo-link img {
             height: 180px;
         }
+    }
+
+    .bottom-app-nav {
+        position: sticky;
+        bottom: 12px;
+        width: 100%;
+        margin-top: 24px;
+    }
+
+    .bottom-app-nav .nav-shell {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        padding: 10px 22px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.9);
+        background: var(--panel);
+        box-shadow: var(--shadow-soft);
+    }
+
+    .bottom-app-nav div[data-testid="stButton"] > button {
+        background: transparent;
+        border: none;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding: 8px 0;
+    }
+
+    .bottom-app-nav div[data-testid="stButton"] > button[kind="primary"],
+    .bottom-app-nav div[data-testid="stButton"] > button[data-testid="baseButton-primary"] {
+        color: var(--accent-strong);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1999,6 +2369,32 @@ def main_dashboard():
     if "view_mode" not in st.session_state:
         st.session_state['view_mode'] = 'all'
 
+    if 'property_type_choice' not in st.session_state:
+        st.session_state['property_type_choice'] = "All"
+
+    if 'hero_category_active' not in st.session_state:
+        st.session_state['hero_category_active'] = "All"
+
+    if 'bottom_nav_active' not in st.session_state:
+        st.session_state['bottom_nav_active'] = 'Home'
+
+    if 'focus_section' not in st.session_state:
+        st.session_state['focus_section'] = None
+
+    if 'account_panel_open' not in st.session_state:
+        st.session_state['account_panel_open'] = False
+    if 'notify_new_listings' not in st.session_state:
+        st.session_state['notify_new_listings'] = True
+
+    if 'notify_price_drop' not in st.session_state:
+        st.session_state['notify_price_drop'] = True
+
+    if 'dark_mode_pref' not in st.session_state:
+        st.session_state['dark_mode_pref'] = False
+
+    if 'auto_translate_pref' not in st.session_state:
+        st.session_state['auto_translate_pref'] = True
+
     params = get_query_params()
     save_param = params.get('save')
     save_op = params.get('save_op', 'add')
@@ -2057,71 +2453,15 @@ def main_dashboard():
     saved_ids = load_saved_ids()
     saved_count = len(saved_ids)
 
-    top_nav_cols = st.columns([3, 1.2, 1, 0.8, 0.6])
-    with top_nav_cols[0]:
-        st.markdown(
-            f"""
-            <div class='top-nav brand-lockup'>
-                <div>
-                    <h1>Thai Real Estate Sniper</h1>
-                    <span>Welcome {username.upper() if username else 'GUEST'}</span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with top_nav_cols[1]:
-        default_index = 0 if lang == "English" else 1
-        lang = st.selectbox("Language", ["English", "ไทย"], index=default_index, key="lang_select")
-    with top_nav_cols[2]:
-        show_original = st.checkbox("Show original text", value=show_original, key="show_original")
-    with top_nav_cols[3]:
-        heart_class = "heart-control saved-active" if st.session_state['view_mode'] == 'saved' else "heart-control"
-        st.markdown(f"<div class='{heart_class}'>", unsafe_allow_html=True)
-        heart_clicked = st.button(
-            f"❤️ {saved_count}",
-            key="saved_heart",
-            help="View your saved properties",
-            use_container_width=True,
-            disabled=not username,
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-        if heart_clicked:
-            st.session_state['view_mode'] = 'all' if st.session_state['view_mode'] == 'saved' else 'saved'
-    with top_nav_cols[4]:
-        if authentication_status:
-            if st.button("Logout", key="logout_button_top"):
-                logout_user()
-        else:
-            st.markdown("<div class='nav-chip'>Guest mode</div>", unsafe_allow_html=True)
-
-    if not authentication_status:
-        render_inline_login_controls()
-
-    view_mode = st.session_state['view_mode']
-    if view_mode == 'saved':
-        st.markdown("<div class='nav-chip'>Saved library</div>", unsafe_allow_html=True)
-        if st.button("← Back to listings", key="back_to_all"):
-            st.session_state['view_mode'] = 'all'
-            view_mode = 'all'
-
     l = labels.get(lang, labels["English"])
 
-    st.markdown(
-        f"""
-        <div class='brand-lockup' style='padding:10px 0 6px;'>
-            <h1 style='font-size:32px;margin:0;'>🏙️ {l['market']}</h1>
-            <span>Live intelligence feed</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
     df = load_properties_df()
-
     if df is None or df.empty:
-        st.warning("No targets found. Admin needs to run a scan.")
+        property_options = []
+        sale_options = []
+        avg_price_by_area = {}
+        data_price_min = 0
+        data_price_max = 0
     else:
         df = df.copy()
         if 'last_updated' in df.columns:
@@ -2143,6 +2483,233 @@ def main_dashboard():
         data_price_max = int(positive_prices.max()) if not positive_prices.empty else 0
         if data_price_min == data_price_max:
             data_price_max = data_price_min + 1000000
+
+    st.markdown("<div id='top-anchor'></div>", unsafe_allow_html=True)
+
+    greeting_hour = datetime.now().hour
+    if greeting_hour < 12:
+        greeting_text = "Good Morning"
+    elif greeting_hour < 18:
+        greeting_text = "Good Afternoon"
+    else:
+        greeting_text = "Good Evening"
+    hero_labels = l
+    hero_market = hero_labels.get('market', 'Thai Market')
+    hero_name = username.title() if username else "Guest Explorer"
+    hero_initials = (username[:2] if username else "TG").upper()
+
+    hero_categories = [
+        {"label": "House", "aliases": ["Single House", "House", "Townhouse", "Townhome"]},
+        {"label": "Villa", "aliases": ["Villa", "Single House", "House"]},
+        {"label": "Apartment", "aliases": ["Condo", "Apartment"]},
+        {"label": "Hotel", "aliases": ["Hotel", "Commercial"]},
+    ]
+
+    def determine_active_category(selected_value):
+        if not selected_value or selected_value == "All":
+            return "All"
+        for cat in hero_categories:
+            if selected_value in cat.get('aliases', []):
+                return cat['label']
+        return "All"
+
+    def resolve_category_value(cat_entry):
+        aliases = cat_entry.get('aliases', [])
+        for alias in aliases:
+            if alias in property_options:
+                return alias
+        return None
+
+    current_choice = st.session_state.get('property_type_choice', "All")
+    st.session_state['hero_category_active'] = determine_active_category(current_choice)
+
+    st.markdown(
+        f"""
+        <div class='hero-shell'>
+            <div class='hero-top'>
+                <div class='hero-profile'>
+                    <span class='hero-eyebrow'>{greeting_text}</span>
+                    <h2>{hero_name}</h2>
+                    <p>{hero_market} intelligence feed</p>
+                </div>
+            </div>
+            <div class='hero-saved-group'>
+                <div class='saved-pill'>
+                    <span class='pill-label'>Saved</span>
+                    <span class='pill-value'>{saved_count}</span>
+                </div>
+                <div class='saved-pill initials-pill'>
+                    <span class='pill-label'>You</span>
+                    <span class='pill-value'>{hero_initials}</span>
+                </div>
+            </div>
+            <div class='hero-search-stack'>
+                <div class='hero-search-bar'>
+        """,
+        unsafe_allow_html=True,
+    )
+    keyword = st.text_input(
+        "Find anything",
+        key="keyword_filter",
+        placeholder="Search projects, districts, banks…",
+        label_visibility="collapsed",
+    )
+    keyword = (keyword or "").strip()
+    st.markdown(
+        """
+                </div>
+                <div class='hero-search-actions'>
+                    <button type='button' class='hero-filter-chip'>Filters</button>
+                    <button type='button' class='hero-voice-pill'>Voice search</button>
+                </div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.container():
+        st.markdown("<div class='hero-toolbar'>", unsafe_allow_html=True)
+        toolbar_cols = st.columns([3, 1], gap="large")
+        with toolbar_cols[0]:
+            st.markdown("<div class='hero-category-stack'>", unsafe_allow_html=True)
+            for cat in hero_categories:
+                target_value = resolve_category_value(cat)
+                is_active = st.session_state.get('hero_category_active') == cat['label']
+                btn_type = "primary" if is_active else "secondary"
+                clicked = st.button(
+                    cat['label'],
+                    key=f"hero_cat_{cat['label']}",
+                    use_container_width=True,
+                    type=btn_type,
+                    disabled=target_value is None,
+                )
+                if clicked:
+                    if target_value:
+                        st.session_state['property_type_choice'] = target_value
+                        st.session_state['property_type_select'] = target_value
+                        st.session_state['hero_category_active'] = cat['label']
+                    else:
+                        st.session_state['property_type_choice'] = "All"
+                        st.session_state['property_type_select'] = "All"
+                        st.session_state['hero_category_active'] = "All"
+            st.markdown("</div>", unsafe_allow_html=True)
+        with toolbar_cols[1]:
+            st.markdown("<div class='hero-dropdown-col'>", unsafe_allow_html=True)
+            reset_clicked = st.button("All Category ▾", key="hero_all_category", use_container_width=True)
+            if reset_clicked:
+                st.session_state['property_type_choice'] = "All"
+                st.session_state['property_type_select'] = "All"
+                st.session_state['hero_category_active'] = "All"
+            st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown("<div class='top-control-row'>", unsafe_allow_html=True)
+        top_nav_cols = st.columns([1.5, 1.2, 0.9, 0.8], gap="medium")
+        with top_nav_cols[0]:
+            default_index = 0 if lang == "English" else 1
+            lang = st.selectbox("Language", ["English", "ไทย"], index=default_index, key="lang_select")
+        with top_nav_cols[1]:
+            show_original = st.checkbox("Show original text", value=show_original, key="show_original")
+        with top_nav_cols[2]:
+            heart_class = "heart-control saved-active" if st.session_state['view_mode'] == 'saved' else "heart-control"
+            st.markdown(f"<div class='{heart_class}'>", unsafe_allow_html=True)
+            heart_clicked = st.button(
+                f"❤️ {saved_count}",
+                key="saved_heart",
+                help="View your saved properties",
+                use_container_width=True,
+                disabled=not username,
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+            if heart_clicked:
+                new_mode = 'all' if st.session_state['view_mode'] == 'saved' else 'saved'
+                st.session_state['view_mode'] = new_mode
+                st.session_state['bottom_nav_active'] = 'Wishlist' if new_mode == 'saved' else 'Home'
+        with top_nav_cols[3]:
+            if authentication_status:
+                if st.button("Logout", key="logout_button_top"):
+                    logout_user()
+            else:
+                st.markdown("<div class='nav-chip'>Guest mode</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if not authentication_status:
+        render_inline_login_controls()
+
+    if st.session_state.get('account_panel_open'):
+        st.markdown("<div id='account-section'></div>", unsafe_allow_html=True)
+        with st.container():
+            st.markdown(
+                """
+                <div class='account-panel'>
+                    <div class='account-header'>
+                        <div>
+                            <p class='account-eyebrow'>Control center</p>
+                            <h3>Profile & Alerts</h3>
+                            <p class='account-subcopy'>Tune your experience for smarter deal flow.</p>
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            account_cols = st.columns([1.2, 1, 1])
+            with account_cols[0]:
+                st.markdown("### Identity")
+                if authentication_status:
+                    st.write(f"**User**: {username}")
+                    st.write(f"**Saved**: {saved_count}")
+                else:
+                    st.info("Sign in to sync your wishlist and track saved deals.")
+                prev_lang = st.session_state.get('account_language', lang)
+                lang_choice = st.radio(
+                    "Preferred language",
+                    options=["English", "ไทย"],
+                    index=0 if prev_lang == "English" else 1,
+                    key="account_language_radio",
+                )
+                st.session_state['account_language'] = lang_choice
+                if lang_choice != lang:
+                    st.session_state['lang_select'] = lang_choice
+            with account_cols[1]:
+                st.markdown("### Notifications")
+                st.session_state['notify_new_listings'] = st.toggle(
+                    "New listing alerts",
+                    value=st.session_state.get('notify_new_listings', True),
+                    key="notify_new_listings_toggle",
+                )
+                st.session_state['notify_price_drop'] = st.toggle(
+                    "Price drop pings",
+                    value=st.session_state.get('notify_price_drop', True),
+                    key="notify_price_drop_toggle",
+                )
+            with account_cols[2]:
+                st.markdown("### Preferences")
+                st.session_state['dark_mode_pref'] = st.toggle(
+                    "Dark mode",
+                    value=st.session_state.get('dark_mode_pref', False),
+                    key="dark_mode_pref_toggle",
+                )
+                st.session_state['auto_translate_pref'] = st.toggle(
+                    "Auto-translate",
+                    value=st.session_state.get('auto_translate_pref', True),
+                    key="auto_translate_pref_toggle",
+                )
+
+    view_mode = st.session_state['view_mode']
+    if view_mode == 'saved':
+        st.markdown("<div class='nav-chip'>Saved library</div>", unsafe_allow_html=True)
+        if st.button("← Back to listings", key="back_to_all"):
+            st.session_state['view_mode'] = 'all'
+            view_mode = 'all'
+            st.session_state['bottom_nav_active'] = 'Home'
+
+
+    if df is None or df.empty:
+        st.warning("No targets found. Admin needs to run a scan.")
+    else:
 
         def resolve_photo_row(target_id):
             if target_id is None or 'id' not in df.columns:
@@ -2572,7 +3139,6 @@ def main_dashboard():
         for opt, label in sale_display_map.items():
             sale_label_groups.setdefault(label, set()).add(opt)
 
-        keyword = ""
         sale_filter_label = "All"
         property_type_choice = "All"
         price_min, price_max = data_price_min, data_price_max
@@ -2580,19 +3146,19 @@ def main_dashboard():
         if view_mode == 'all':
             with st.container():
                 st.markdown("<div class='filter-card'>", unsafe_allow_html=True)
-                top_search, top_sale = st.columns([2.2, 1])
-                with top_search:
-                    keyword = st.text_input(
-                        "🔍 Find anything",
-                        key="keyword_filter",
-                        placeholder="Project, district, bank, keyword",
-                    )
+                top_sale, top_keyword = st.columns([1, 1])
                 with top_sale:
                     if sale_options:
                         sale_choices = ["All"] + list(sale_label_groups.keys())
                         sale_filter_label = st.selectbox("Sale channel", sale_choices, key="sale_channel_filter")
                     else:
                         sale_filter_label = "All"
+                with top_keyword:
+                    active_term = keyword.strip()
+                    st.markdown(
+                        f"<div class='active-keyword-pill'><span class='pill-icon'>🔍</span>Searching · <strong>{active_term or 'All listings'}</strong></div>",
+                        unsafe_allow_html=True,
+                    )
 
                 bottom_types, bottom_price = st.columns([2, 1])
                 with bottom_types:
@@ -2608,9 +3174,12 @@ def main_dashboard():
                             key="property_type_select",
                         )
                         st.session_state['property_type_choice'] = property_type_choice
+                        st.session_state['hero_category_active'] = determine_active_category(property_type_choice)
                     else:
                         property_type_choice = "All"
                         st.caption("No property type data yet")
+                        st.session_state['property_type_choice'] = "All"
+                        st.session_state['hero_category_active'] = "All"
                 with bottom_price:
                     st.caption("Budget (THB)")
                     min_value_default = int(st.session_state.get('budget_min_value', data_price_min))
@@ -2713,12 +3282,16 @@ def main_dashboard():
 
                         if lang == "English":
                             title_t = clean_text_field(row.get('title_en')) or translate_text(native_title, "en")
+                            location_t = clean_text_field(row.get('location_en')) or translate_text(native_location, "en")
                             bank_t = clean_text_field(row.get('bank_en')) or translate_text(native_bank, "en")
                             contact_t = clean_text_field(row.get('contact_en')) or translate_text(native_contact, "en")
                         else:
                             title_t = native_title
+                            location_t = native_location
                             bank_t = native_bank
                             contact_t = native_contact
+                        if not location_t:
+                            location_t = native_location
 
                         map_action_html = ""
                         map_links = build_map_links(row.get('lat'), row.get('lon'), native_location)
@@ -2858,13 +3431,25 @@ def main_dashboard():
                             bank_display = f" · {bank_t}"
                         sale_html = f"<div class='sale-pill'>{sale_label}{bank_display}</div>"
 
-                        compact_meta_html = compact_html(
+                        stats_row_html = compact_html(
                             f"""
-                            <div class='compact-meta-grid'>
-                                <div class='meta-chip'><span>{l['size_label']}</span><strong>{size_display}</strong></div>
-                                <div class='meta-chip'><span>{l['land_size']}</span><strong>{land_display}</strong></div>
-                                <div class='meta-chip'><span>{bed_meta_label}</span><strong>{beds_value}</strong></div>
-                                <div class='meta-chip'><span>{l['baths']}</span><strong>{bath_count_display}</strong></div>
+                            <div class='card-stat-row'>
+                                <div class='stat-chip'>
+                                    <span>{l['size_label']}</span>
+                                    <strong>{size_display}</strong>
+                                </div>
+                                <div class='stat-chip'>
+                                    <span>{l['land_size']}</span>
+                                    <strong>{land_display}</strong>
+                                </div>
+                                <div class='stat-chip'>
+                                    <span>{bed_meta_label}</span>
+                                    <strong>{beds_value}</strong>
+                                </div>
+                                <div class='stat-chip'>
+                                    <span>{l['baths']}</span>
+                                    <strong>{bath_count_display}</strong>
+                                </div>
                             </div>
                             """
                         )
@@ -2872,8 +3457,20 @@ def main_dashboard():
                         value_insights_html = compact_html(
                             f"""
                             <div class='value-grid'>
-                                <div class='value-chip'><span>{l['rent_estimate']}</span><strong>{rent_display}</strong></div>
-                                <div class='value-chip'><span>{l['investment_rating']}</span><strong>{investment_display}</strong></div>
+                                <div class='value-chip'>
+                                    <div class='value-chip-header'>
+                                        <span class='value-icon'>💰</span>
+                                        <span class='value-label'>{l['rent_estimate']}</span>
+                                    </div>
+                                    <strong>{rent_display}</strong>
+                                </div>
+                                <div class='value-chip'>
+                                    <div class='value-chip-header'>
+                                        <span class='value-icon'>📊</span>
+                                        <span class='value-label'>{l['investment_rating']}</span>
+                                    </div>
+                                    <strong>{investment_display}</strong>
+                                </div>
                             </div>
                             """
                         )
@@ -2898,6 +3495,24 @@ def main_dashboard():
                         if not save_html:
                             save_html = "<span></span>"
 
+                        location_html = compact_html(
+                            f"""
+                            <div class='location-eyebrow'>
+                                <span>📍 {location_t}</span>
+                                <span class='rating-pill'>⭐ {living_rating}</span>
+                            </div>
+                            """
+                        )
+
+                        contact_bits = []
+                        if contact_t and contact_t.lower() not in ("n/a", "na", "-", "—"):
+                            contact_bits.append(f"<div class='contact-chip'>📞 {contact_t[:28]}</div>")
+                        if bank_t and bank_t.lower() not in ("n/a", "na", "-", "—"):
+                            contact_bits.append(f"<div class='contact-chip'>🏦 {bank_t[:24]}</div>")
+                        contact_html = "".join(contact_bits)
+                        if contact_html:
+                            contact_html = f"<div class='card-contact-row'>{contact_html}</div>"
+
                         detail_href = "#"
                         if property_id is not None:
                             detail_href = build_query_string(
@@ -2905,6 +3520,18 @@ def main_dashboard():
                                 photo=None,
                                 photo_idx=None
                             ) or f"?detail={property_id}"
+
+                        cta_row_html = compact_html(
+                            f"""
+                            <div class='card-cta-row'>
+                                <div class='price-stack'>
+                                    <span>Price</span>
+                                    <strong>{price_display}</strong>
+                                </div>
+                                <a class='buy-pill' href='{detail_href}' onclick="event.stopPropagation();"><span class='pill-icon'>🛒</span>View Detail ↗</a>
+                            </div>
+                            """
+                        )
 
                         card_html = compact_html(
                             f"""
@@ -2923,10 +3550,13 @@ def main_dashboard():
                                                 <div class="secondary">{pricing_secondary}</div>
                                             </div>
                                         </div>
+                                        {location_html}
+                                        {contact_html or ''}
                                         {price_bar_html}
                                         {map_action_html}
-                                        {compact_meta_html}
+                                        {stats_row_html}
                                         {value_insights_html}
+                                        {cta_row_html}
                                         <div class="card-footer-row">
                                             <span class="pricing-hint {pricing_class}">{pricing_text}</span>
                                             <div class="card-footer-actions">
@@ -2978,6 +3608,7 @@ def main_dashboard():
                     warn_msg = health.get('last_error') or "Using backup translator only."
                     st.warning(f"⚠️ Translation services unavailable. {warn_msg}")
 
+            st.markdown("<div id='map-section'></div>", unsafe_allow_html=True)
             st.subheader("📍 Map Overview")
             if not filtered_df.empty and {'lat', 'lon'}.issubset(filtered_df.columns):
                 map_columns = ['lat', 'lon', 'title', 'title_en', 'price', 'location', 'location_en', 'photos']
@@ -3069,5 +3700,64 @@ def main_dashboard():
                     st.caption("No coordinates available yet.")
             else:
                 st.caption("No coordinates available yet.")
+
+        nav_items = [
+            {"label": "Home", "icon": "🏠"},
+            {"label": "Explore", "icon": "🧭"},
+            {"label": "Wishlist", "icon": "💖"},
+            {"label": "Account", "icon": "👤"},
+        ]
+        st.markdown("<div class='bottom-app-nav'><div class='nav-shell'>", unsafe_allow_html=True)
+        nav_cols = st.columns(len(nav_items), gap="small")
+        for col, item in zip(nav_cols, nav_items):
+            with col:
+                is_active = st.session_state.get('bottom_nav_active', 'Home') == item['label']
+                btn_type = "primary" if is_active else "secondary"
+                clicked = st.button(
+                    f"{item['icon']} {item['label']}",
+                    key=f"bottom_nav_{item['label']}",
+                    use_container_width=True,
+                    type=btn_type,
+                )
+                if clicked:
+                    st.session_state['bottom_nav_active'] = item['label']
+                    if item['label'] == 'Home':
+                        st.session_state['view_mode'] = 'all'
+                        view_mode = 'all'
+                        st.session_state['focus_section'] = 'top'
+                        st.session_state['account_panel_open'] = False
+                    elif item['label'] == 'Explore':
+                        st.session_state['view_mode'] = 'all'
+                        view_mode = 'all'
+                        st.session_state['focus_section'] = 'map'
+                        st.session_state['account_panel_open'] = False
+                    elif item['label'] == 'Wishlist':
+                        st.session_state['view_mode'] = 'saved'
+                        view_mode = 'saved'
+                        st.session_state['focus_section'] = 'top'
+                        st.session_state['account_panel_open'] = False
+                    elif item['label'] == 'Account':
+                        st.session_state['account_panel_open'] = True
+                        st.session_state['focus_section'] = 'account'
+        st.markdown("</div></div>", unsafe_allow_html=True)
+
+        focus_target = st.session_state.get('focus_section')
+        if focus_target:
+            target_id = {
+                'top': 'top-anchor',
+                'map': 'map-section',
+                'account': 'account-section',
+            }.get(focus_target)
+            if target_id:
+                st.markdown(
+                    f"""
+                    <script>
+                        const anchor = document.getElementById('{target_id}');
+                        if (anchor) {{ anchor.scrollIntoView({{behavior: 'smooth'}}); }}
+                    </script>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            st.session_state['focus_section'] = None
 
 main_dashboard()
