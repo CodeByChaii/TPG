@@ -1,0 +1,10 @@
+streamlit
+pandas
+playwright
+psycopg2-binary
+python-dotenv
+geopy
+watchdog
+requests
+google-cloud-translate
+google-auth
