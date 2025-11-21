@@ -47,53 +47,245 @@ PHOTO_FAVOR_KEYWORDS = [
     "home",
     "front",
     "exterior",
-    "interior",
+    "facade",
+    "villa",
     "living",
-    "bed",
-    "bath",
-    "land",
-    "asset-small",
-    "asset_small",
-    "asset-large",
-    "asset/",
-    "gallery",
-    "property",
+    "interior",
 ]
 
-# Load secrets from local .env or Streamlit secrets
-load_dotenv()
-
-def get_config_value(key, default=None):
-    """Prefer Streamlit secrets when deployed, fall back to env vars locally."""
-    try:
-        if key in st.secrets:
-            return st.secrets[key]
-    except Exception:
-        pass
-    return os.getenv(key, default)
-
-TOKEN_TTL_DAYS = int(get_config_value("REMEMBER_TOKEN_DAYS", "14"))
-TOKEN_ROTATE_BUFFER_DAYS = int(get_config_value("REMEMBER_TOKEN_ROTATE_BUFFER_DAYS", "3"))
-DEFAULT_PLACEHOLDER_IMAGE = get_config_value(
-    "FALLBACK_PHOTO_URL",
-    "https://placehold.co/600x360?text=Thai+Property"
-)
-
-DB_URL = get_config_value("DATABASE_URL")
-GOOGLE_TRANSLATE_API_KEY = get_config_value("GOOGLE_TRANSLATE_API_KEY")
-
-# --- CONFIG ---
-st.set_page_config(page_title="Thai Real Estate Sniper", page_icon="🏙️", layout="wide")
-
-# CSS to hide Streamlit branding for a "Pro" look
-st.markdown("""
+st.markdown(
+    """
     <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    .stat-slab {
+        display: flex;
+        gap: 12px;
+    }
 
-    :root {
-        --surface: #E9F4F0;
+    .stat-card {
+        flex: 1;
+        background: rgba(255,255,255,0.9);
+        border-radius: 24px;
+        padding: 16px 18px;
+        border: 1px solid rgba(255,255,255,0.7);
+        text-align: left;
+        box-shadow: 0 16px 30px rgba(15,23,42,0.1);
+    }
+
+    .stat-card label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(15,23,42,0.55);
+    }
+
+    .stat-card strong {
+        display: block;
+        font-size: 24px;
+        margin-top: 4px;
+        color: #0F172A;
+    }
+
+    .inline-login-card {
+        border-radius: 26px;
+        padding: 16px 18px;
+        background: rgba(255,255,255,0.95);
+        border: 1px solid rgba(15,23,42,0.05);
+        box-shadow: 0 14px 32px rgba(15,23,42,0.08);
+    }
+
+    .inline-login-card h4 {
+        margin: 0 0 2px;
+        font-size: 18px;
+        color: #0F172A;
+    }
+
+    .inline-login-card p {
+        margin: 0 0 16px;
+        font-size: 14px;
+        color: rgba(15,23,42,0.6);
+    }
+
+    .inline-login-card .cta-row {
+        display: flex;
+        gap: 10px;
+    }
+
+    .inline-login-card .cta-row .stButton > button {
+        width: 100%;
+        border-radius: 18px;
+        height: 48px;
+        font-weight: 600;
+        box-shadow: 0 16px 26px rgba(15,23,42,0.12);
+    }
+
+    .inline-login-card .cta-row .stButton > button[data-testid="baseButton-primary"],
+    .inline-login-card .cta-row .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #1AAE80, #26C589);
+        color: #fff;
+        border: none;
+    }
+
+    .recommend-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 34px 0 12px;
+    }
+
+    .recommend-title h3 {
+        margin: 0;
+        font-size: 22px;
+    }
+
+    .recommend-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+    }
+
+    .recommend-card {
+        border-radius: 32px;
+        padding: 16px;
+        background: #fff;
+        border: 1px solid rgba(15,23,42,0.05);
+        box-shadow: 0 18px 36px rgba(15,23,42,0.12);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        text-decoration: none;
+        color: #0F172A;
+    }
+
+    .recommend-media {
+        position: relative;
+        border-radius: 26px;
+        overflow: hidden;
+    }
+
+    .recommend-media img {
+        width: 100%;
+        height: 190px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .card-badge {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.9);
+        font-size: 13px;
+        font-weight: 600;
+        color: #0F172A;
+        box-shadow: 0 10px 18px rgba(15,23,42,0.12);
+    }
+
+    .recommend-heart {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: #d946ef;
+        box-shadow: 0 12px 24px rgba(15,23,42,0.18);
+    }
+
+    .recommend-heart.saved {
+        background: linear-gradient(135deg, #EC4899, #F97316);
+        color: #fff;
+    }
+
+    .recommend-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .card-headline {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .card-headline h4 {
+        margin: 0;
+        font-size: 20px;
+    }
+
+    .card-headline p {
+        margin: 0;
+        color: rgba(15,23,42,0.55);
+        font-size: 14px;
+    }
+
+    .rec-price {
+        font-size: 20px;
+        color: #0F172A;
+        white-space: nowrap;
+    }
+
+    .card-meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .meta-pill {
+        border-radius: 999px;
+        background: rgba(15,23,42,0.05);
+        padding: 6px 12px;
+        font-size: 13px;
+        color: rgba(15,23,42,0.75);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .bottom-nav {
+        margin-top: 28px;
+        padding: 12px 18px;
+        border-radius: 28px;
+        background: rgba(255,255,255,0.95);
+        border: 1px solid rgba(15,23,42,0.06);
+        box-shadow: 0 18px 36px rgba(15,23,42,0.12);
+    }
+
+    .bottom-nav-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+    }
+
+    .bottom-nav-grid .stButton > button {
+        width: 100%;
+        border-radius: 18px;
+        padding: 12px 0 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        background: transparent;
+        border: none;
+        color: rgba(15,23,42,0.6);
+        font-weight: 600;
+    }
+
+    .bottom-nav-grid .stButton > button[data-testid="baseButton-primary"],
+    .bottom-nav-grid .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #0F172A, #1F2650);
+        color: #fff;
+    }
         --surface-alt: #F7FCFA;
         --panel: #FFFFFF;
         --border: #D9E8E1;
@@ -180,328 +372,216 @@ st.markdown("""
     }
 
     .hero-shell {
-        margin-top: 12px;
-        padding: 24px 26px 28px;
-        border-radius: 30px;
-        border: none;
-        min-height: 320px;
-        background: linear-gradient(145deg, #EBF5F0, #D7EAFB);
-        box-shadow: 0 25px 45px rgba(101, 163, 136, 0.35);
+        margin-top: 20px;
+        border-radius: 44px;
+        background: linear-gradient(145deg, #EEF2FF, #E6FBF4);
+        padding: 30px 32px 32px;
+        box-shadow: 0 36px 70px rgba(15,23,42,0.16);
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        gap: 22px;
+        gap: 18px;
+        position: relative;
     }
 
-    .hero-top {
+    .hero-shell::after {
+        content: "";
+        position: absolute;
+        inset: 10px;
+        border-radius: 38px;
+        border: 1px solid rgba(255,255,255,0.65);
+        pointer-events: none;
+    }
+
+    .hero-topline {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 16px;
-        flex-wrap: wrap;
     }
 
-    .hero-profile {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .hero-eyebrow {
-        text-transform: uppercase;
-        letter-spacing: 0.22em;
-        font-size: 14px;
-        color: rgba(15, 23, 42, 0.55);
-    }
-
-    .hero-profile h2 {
-        margin: 4px 0 2px;
-        font-size: 32px;
-        line-height: 36px;
-        color: #0F172A;
-        font-weight: 600;
-    }
-
-    .hero-profile p {
-        margin: 0;
-        color: rgba(15, 23, 42, 0.65);
-        font-size: 15px;
-    }
-
-    .hero-meta {
+    .hero-location-chip {
         display: flex;
         align-items: center;
         gap: 12px;
-    }
-
-    .hero-avatar {
-        width: 46px;
-        height: 46px;
-        border-radius: 16px;
-        background: rgba(255,255,255,0.25);
-        border: 1px solid rgba(255,255,255,0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #ffffff;
-        font-weight: 700;
-        font-size: 18px;
-    }
-
-    .hero-saved-group {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-top: 4px;
-    }
-
-    .saved-pill {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
         padding: 10px 18px;
         border-radius: 999px;
-        min-width: 150px;
-        background: rgba(255,255,255,0.55);
-        border: 1px solid rgba(15,23,42,0.08);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(15,23,42,0.05);
+        box-shadow: 0 12px 24px rgba(15,23,42,0.08);
+    }
+
+    .hero-location-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #8A7BFF, #6AD7FF);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: #fff;
+        box-shadow: 0 10px 18px rgba(106,215,255,0.35);
+    }
+
+    .hero-location-chip label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(15,23,42,0.5);
+    }
+
+    .hero-location-chip strong {
+        display: block;
+        font-size: 18px;
         color: #0F172A;
     }
 
-    .saved-pill.initials-pill {
-        min-width: 90px;
+    .hero-alert-bubble {
+        width: 48px;
+        height: 48px;
+        border-radius: 24px;
+        background: rgba(255,255,255,0.95);
+        border: 1px solid rgba(15,23,42,0.08);
+        display: flex;
+        align-items: center;
         justify-content: center;
-        font-weight: 600;
+        font-size: 20px;
+        box-shadow: 0 14px 28px rgba(15,23,42,0.16);
     }
 
-    .saved-pill .pill-label {
-        font-size: 13px;
+    .hero-heading h1 {
+        margin: 8px 0 4px;
+        font-size: clamp(32px, 5vw, 42px);
+        line-height: 1.1;
+        color: #0F172A;
+    }
+
+    .hero-heading p {
+        margin: 0;
+        font-size: 16px;
+        color: rgba(15,23,42,0.6);
+    }
+
+    .hero-eyebrow-small {
+        font-size: 12px;
+        letter-spacing: 0.32em;
         text-transform: uppercase;
-        letter-spacing: 0.18em;
         color: rgba(15,23,42,0.55);
     }
 
-    .saved-pill .pill-value {
-        font-size: 20px;
-        font-weight: 600;
-    }
-
-    .hero-stat-card {
-        min-width: 120px;
-        border-radius: 18px;
-        padding: 10px 14px;
-        border: 1px solid rgba(255,255,255,0.55);
-        background: rgba(255,255,255,0.18);
-        color: #ffffff;
-        text-align: right;
-    }
-
-    .hero-stat-card span {
-        font-size: 11px;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        display: block;
-    }
-
-    .hero-stat-card strong {
-        font-size: 22px;
-        display: block;
-    }
-
-    .hero-search-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-    }
-
-    .hero-search-bar {
-        position: relative;
-        border-radius: 999px;
-        border: 1px solid rgba(15,23,42,0.08);
-        background: rgba(255,255,255,0.92);
-        box-shadow: 0 18px 32px rgba(15,23,42,0.12);
-        padding: 0 60px;
-        height: 56px;
-        display: flex;
+    .hero-search-group {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 60px 60px;
+        gap: 12px;
         align-items: center;
     }
 
-    .hero-search-bar::before {
+    .search-pill-shell {
+        border-radius: 999px;
+        background: rgba(255,255,255,0.95);
+        padding: 10px 20px 10px 54px;
+        min-height: 64px;
+        display: flex;
+        align-items: center;
+        position: relative;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+
+    .search-pill-shell::before {
         content: "";
         position: absolute;
-        left: 24px;
-        top: 50%;
-        width: 20px;
-        height: 20px;
+        left: 22px;
+        width: 22px;
+        height: 22px;
         background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%230F172A"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/%3E%3C/svg%3E') center/contain no-repeat;
-        transform: translateY(-50%);
-        opacity: 0.65;
+        opacity: 0.45;
     }
 
-    .hero-search-bar div[data-testid="stTextInput"] {
-        width: 100%;
-    }
-
-    .hero-search-bar label {
-        display: none;
-    }
-
-    .hero-search-bar div[data-baseweb="input"] {
+    .search-pill-shell div[data-baseweb="input"] {
         border: none;
         background: transparent;
         box-shadow: none;
     }
 
-    .hero-search-bar input {
+    .search-pill-shell input {
         border: none !important;
         background: transparent !important;
-        font-size: 16px;
+        font-size: 18px;
+        font-weight: 600;
         color: #0F172A;
         padding: 0;
-        font-weight: 500;
     }
 
-    .hero-search-actions {
+    .round-icon-button .stButton > button {
+        width: 100%;
+        height: 64px;
+        border-radius: 999px;
+        border: none;
+        background: rgba(255,255,255,0.92);
+        font-size: 16px;
+        font-weight: 600;
+        box-shadow: 0 12px 28px rgba(15,23,42,0.12);
+        color: #0F172A;
+    }
+
+    .chip-toolbar .chip-button.voice .stButton > button {
+        background: linear-gradient(135deg, #0F172A, #1F2650);
+        color: #fff;
+        border: none;
+        box-shadow: 0 18px 30px rgba(15,23,42,0.25);
+    }
+
+    .category-pills {
+        display: flex;
+        gap: 12px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        scroll-snap-type: x proximity;
+    }
+
+    .category-pills::-webkit-scrollbar {
+        height: 0px;
+    }
+
+    .category-pills .stButton > button {
+        border-radius: 999px;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: rgba(255,255,255,0.88);
+        padding: 12px 20px;
+        font-weight: 600;
+        color: #0F172A;
+        box-shadow: 0 12px 24px rgba(15,23,42,0.1);
+    }
+
+    .category-pills .stButton > button[data-testid="baseButton-primary"],
+    .category-pills .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #8A7BFF, #6AD7FF);
+        color: #fff;
+        border: none;
+        box-shadow: 0 16px 30px rgba(109,141,255,0.35);
+    }
+
+    .control-bar {
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
-        align-items: center;
+        margin-top: 6px;
     }
 
-    .hero-filter-chip,
-    .hero-voice-pill {
-        border: none;
-        border-radius: 999px;
-        height: 42px;
-        padding: 0 18px;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .hero-filter-chip {
-        background: rgba(255,255,255,0.6);
-        color: #0F172A;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+    .control-bar > div {
+        flex: 1 1 200px;
+        border-radius: 18px;
         border: 1px solid rgba(15,23,42,0.08);
-    }
-
-    .hero-filter-chip::before {
-        content: "";
-        width: 18px;
-        height: 18px;
-        background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%230F172A"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10m-5 6h6"/%3E%3C/svg%3E') center/contain no-repeat;
-    }
-
-    .hero-voice-pill {
-        background: #0F172A;
-        color: #F5FDF9;
-        box-shadow: 0 10px 24px rgba(15,23,42,0.25);
-    }
-
-    .hero-voice-pill::before {
-        content: "";
-        width: 18px;
-        height: 18px;
-        background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 4.5v7m0 0a2.25 2.25 0 0 0 2.25-2.25V7.5A2.25 2.25 0 0 0 12 5.25m0 6.25a2.25 2.25 0 0 1-2.25-2.25V7.5A2.25 2.25 0 0 1 12 5.25M19.5 12a7.5 7.5 0 1 1-15 0"/%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 19.5V21"/%3E%3C/svg%3E') center/contain no-repeat;
-    }
-
-    .hero-filter-chip:hover,
-    .hero-voice-pill:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 16px 26px rgba(15,23,42,0.12);
-    }
-
-    .hero-toolbar {
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-        margin-top: 12px;
-    }
-
-    .hero-category-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        width: 100%;
-    }
-
-    .hero-category-stack div[data-testid="stButton"] {
-        width: 100%;
-    }
-
-    .hero-category-stack div[data-testid="stButton"] button {
-        width: 100%;
-        border-radius: 18px;
-        border: 1px solid rgba(15,23,42,0.06);
-        background: rgba(255,255,255,0.75);
-        color: #0F172A;
-        font-weight: 600;
-        justify-content: flex-start;
-        letter-spacing: 0.02em;
-        padding: 14px 18px;
-        box-shadow: 0 14px 28px rgba(15,23,42,0.08);
-    }
-
-    .hero-category-stack div[data-testid="stButton"] button[kind="primary"],
-    .hero-category-stack div[data-testid="stButton"] button[data-testid="baseButton-primary"] {
-        background: #0F172A;
-        color: #F5FDF9;
-        border-color: #0F172A;
-        box-shadow: 0 18px 32px rgba(15,23,42,0.2);
-    }
-
-    .hero-category-stack div[data-testid="stButton"] button:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
-
-    .hero-dropdown-col div[data-testid="stButton"] button {
-        padding: 12px 18px;
-        border-radius: 16px;
-        background: rgba(255,255,255,0.18);
-        border: 1px solid rgba(255,255,255,0.45);
-        font-weight: 600;
-        color: #ffffff;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        width: 100%;
-    }
-
-    .top-control-row {
-        margin-top: 18px;
-    }
-
-    .top-control-row div[data-testid="column"] > div > div {
-        border-radius: 18px;
-        border: 1px solid var(--border);
-        background: var(--panel);
+        background: #fff;
         padding: 10px 14px;
-        box-shadow: var(--shadow-soft);
+        box-shadow: 0 10px 24px rgba(15,23,42,0.08);
     }
 
-    .top-control-row div[data-testid="stSelectbox"] label,
-    .top-control-row div[data-testid="stCheckbox"] label {
-        font-size: 11px;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--eyebrow);
-    }
-
-    .top-control-row div[data-testid="stCheckbox"] > div > label {
-        gap: 8px;
-        font-weight: 600;
-        color: var(--text);
-    }
-
-    .top-control-row button {
-        border-radius: 999px !important;
-        border: 1px solid var(--border) !important;
-        font-weight: 600 !important;
+    .control-bar .nav-chip,
+    .control-bar .heart-control button {
+        width: 100%;
     }
 
     .nav-chip,
@@ -616,93 +696,121 @@ st.markdown("""
 
     .property-card {
         border-radius: 32px;
-        border: 1px solid rgba(255,255,255,0.9);
-        background: #fbfefd;
-        padding: 16px;
-        margin-bottom: 18px;
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+        background: #ffffff;
+        padding: 18px;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 16px;
     }
 
-    .card-detail-link {
-        display: flex;
-        text-decoration: none;
-        color: inherit;
-        cursor: pointer;
-        height: 100%;
-    }
-
-    .card-detail-link:focus-visible {
-        outline: 2px solid rgba(96, 165, 250, 0.7);
-        border-radius: 12px;
-    }
-
-    .card-detail-link:hover .card-compact {
-        transform: translateY(-1px);
-    }
-
-    .photo-link {
-        display: block;
+    .card-photo {
         position: relative;
-        border-radius: 24px;
+        display: block;
+        border-radius: 28px;
         overflow: hidden;
-        border: 1px solid var(--border);
-        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6);
     }
 
-    .photo-link img {
+    .card-photo img {
         width: 100%;
         height: 220px;
         object-fit: cover;
         display: block;
-        filter: saturate(1.05);
         transition: transform 0.25s ease;
     }
 
-    .photo-link:hover img {
-        transform: scale(1.04);
+    .card-photo:hover img {
+        transform: scale(1.03);
     }
 
-    .photo-link .photo-overlay {
+    .photo-top-row,
+    .photo-bottom-row {
         position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg, rgba(11,25,19,0.1) 0%, rgba(11,25,19,0.75) 100%);
-        color: #ffffff;
+        left: 14px;
+        right: 14px;
         display: flex;
+        align-items: center;
         justify-content: space-between;
-        align-items: flex-start;
-        padding: 16px;
     }
 
-    .photo-overlay .overlay-pill {
-        background: rgba(255, 255, 255, 0.95);
+    .photo-top-row { top: 14px; }
+    .photo-bottom-row { bottom: 14px; }
+
+    .photo-pill {
+        padding: 6px 14px;
         border-radius: 999px;
-        padding: 6px 16px;
+        background: rgba(255,255,255,0.92);
         font-size: 11px;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        border: none;
         color: var(--accent-strong);
-    }
-
-    .photo-overlay .overlay-link {
         font-weight: 600;
-        font-size: 13px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #ffffff;
     }
 
-    .card-tags {
+    .photo-actions {
         display: flex;
         gap: 8px;
-        flex-wrap: wrap;
+    }
+
+    .icon-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        border: none;
+        background: rgba(255,255,255,0.9);
+        box-shadow: 0 10px 24px rgba(15,23,42,0.18);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .icon-btn::before {
+        content: "";
+        width: 18px;
+        height: 18px;
+        display: block;
+        background-size: contain;
+        background-repeat: no-repeat;
+    }
+
+    .icon-btn.share::before {
+        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%230F172A"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8.517a3 3 0 1 0-2-5.517 3 3 0 0 0 2 5.517zM7 14.517a3 3 0 1 0-2 5.517 3 3 0 0 0 2-5.517z"/%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m7.5 13.5 9-5"/%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m7.5 10.5 9 5"/%3E%3C/svg%3E');
+    }
+
+    .icon-btn.heart::before {
+        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%23ec4899"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 0 1 6.364 0L12 7.636l1.318-1.318a4.5 4.5 0 1 1 6.364 6.364L12 21.364l-7.682-7.682a4.5 4.5 0 0 1 0-6.364z"/%3E%3C/svg%3E');
+    }
+
+    .icon-btn.heart.saved {
+        background: #ec4899;
+    }
+
+    .icon-btn.heart.saved::before {
+        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"%3E%3Cpath d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 21 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/%3E%3C/path%3E');
+    }
+
+    .icon-btn.heart.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .sale-badge,
+    .meta-pill {
+        padding: 6px 14px;
+        border-radius: 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #0F172A;
+        background: rgba(255,255,255,0.92);
+    }
+
+    .sale-badge {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
     }
 
     .sale-pill {
-        margin-top: 6px;
         display: inline-flex;
         padding: 6px 14px;
         border-radius: 999px;
@@ -714,78 +822,79 @@ st.markdown("""
         color: var(--accent-strong);
     }
 
-    .property-card h4 {
-        margin: 0;
-        font-size: 18px;
-        color: var(--text);
-        letter-spacing: -0.005em;
-    }
-
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 18px;
-    }
-
-    .card-title-stack {
+    .card-body {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 12px;
+        cursor: pointer;
     }
 
-    .card-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
+    .card-body h4 {
+        margin: 0;
+        font-size: 20px;
+        color: #0F172A;
     }
 
-    .location-eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 13px;
+    .card-location {
+        margin: 0;
+        font-size: 14px;
         color: var(--text-muted);
     }
 
-    .rating-pill {
-        padding: 4px 10px;
-        border-radius: 14px;
-        background: rgba(255,255,255,0.8);
-        border: 1px solid rgba(15,23,42,0.06);
-        font-size: 12px;
-        color: var(--accent-strong);
-        font-weight: 600;
-    }
-
-    .card-contact-row {
+    .spec-row {
         display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .contact-chip {
-        padding: 10px 16px;
+        justify-content: space-between;
+        background: #F6FBF8;
         border-radius: 18px;
-        border: 1px solid var(--border);
-        background: #ffffff;
-        font-weight: 600;
+        padding: 10px 14px;
         font-size: 13px;
-        color: var(--text);
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
+        color: #0F172A;
     }
 
-    .card-cta-row {
+    .spec-row span {
+        display: inline-flex;
+        gap: 4px;
+        align-items: baseline;
+    }
+
+    .agent-chip {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid rgba(15,23,42,0.08);
+        border-radius: 18px;
+        padding: 10px 14px;
+        background: #FFFFFF;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+
+    .agent-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        background: rgba(33,179,122,0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .agent-chip strong {
+        display: block;
+        color: #0F172A;
+    }
+
+    .agent-chip span {
+        font-size: 12px;
+        color: rgba(15,23,42,0.6);
+    }
+
+    .price-cta-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 16px;
-        margin-top: 12px;
-        padding-top: 12px;
         border-top: 1px solid rgba(15,23,42,0.08);
+        padding-top: 14px;
+        gap: 16px;
     }
 
     .price-stack {
@@ -795,34 +904,27 @@ st.markdown("""
     }
 
     .price-stack span {
-        font-size: 11px;
-        letter-spacing: 0.18em;
+        font-size: 12px;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--eyebrow);
     }
 
     .price-stack strong {
         font-size: 26px;
-        color: var(--text);
+        color: #0F172A;
     }
 
     .buy-pill {
         padding: 14px 28px;
         border-radius: 18px;
         border: none;
-        background: linear-gradient(120deg, #20B486, #1AA7EC);
+        background: linear-gradient(120deg, #21B37A, #1AA7EC);
         color: #ffffff;
         font-weight: 600;
         letter-spacing: 0.04em;
         text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        box-shadow: 0 12px 24px rgba(32,180,134,0.35);
-    }
-
-    .buy-pill .pill-icon {
-        font-size: 16px;
+        box-shadow: 0 14px 28px rgba(32,178,123,0.35);
     }
 
     .type-chip {
@@ -2162,11 +2264,11 @@ def login_screen():
                 st.error(st.session_state.login_error)
 
 
-def render_inline_login_controls():
+def render_inline_login_controls(inline=False):
     if st.session_state.auth_status:
         return
 
-    with st.expander("Login to save", expanded=False):
+    def login_body():
         st.caption("Default admin credentials → **admin / admin123**")
         login_error = st.session_state.get('login_error')
         if login_error:
@@ -2196,6 +2298,13 @@ def render_inline_login_controls():
                 st.session_state.auth_status = False
                 st.session_state.login_error = "Invalid email or password."
                 st.error(st.session_state.login_error)
+
+    if inline:
+        login_body()
+    else:
+        st.markdown("<div class='inline-login-card'>", unsafe_allow_html=True)
+        login_body()
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # --- DASHBOARD ---
 def main_dashboard():
@@ -2454,6 +2563,15 @@ def main_dashboard():
     saved_count = len(saved_ids)
 
     l = labels.get(lang, labels["English"])
+    greeting_hour = datetime.now().hour
+    if greeting_hour < 12:
+        greeting_text = "Good Morning"
+    elif greeting_hour < 18:
+        greeting_text = "Good Afternoon"
+    else:
+        greeting_text = "Good Evening"
+    hero_name = username.title() if username else "Guest Explorer"
+    hero_initials = (username[:2] if username else "TG").upper()
 
     df = load_properties_df()
     if df is None or df.empty:
@@ -2486,24 +2604,22 @@ def main_dashboard():
 
     st.markdown("<div id='top-anchor'></div>", unsafe_allow_html=True)
 
-    greeting_hour = datetime.now().hour
-    if greeting_hour < 12:
-        greeting_text = "Good Morning"
-    elif greeting_hour < 18:
-        greeting_text = "Good Afternoon"
-    else:
-        greeting_text = "Good Evening"
-    hero_labels = l
-    hero_market = hero_labels.get('market', 'Thai Market')
-    hero_name = username.title() if username else "Guest Explorer"
-    hero_initials = (username[:2] if username else "TG").upper()
-
     hero_categories = [
-        {"label": "House", "aliases": ["Single House", "House", "Townhouse", "Townhome"]},
-        {"label": "Villa", "aliases": ["Villa", "Single House", "House"]},
-        {"label": "Apartment", "aliases": ["Condo", "Apartment"]},
-        {"label": "Hotel", "aliases": ["Hotel", "Commercial"]},
+        {"label": "House", "icon": "🏠", "aliases": ["Single House", "House", "Townhouse", "Townhome"]},
+        {"label": "Villa", "icon": "🏡", "aliases": ["Villa", "Single House", "House"]},
+        {"label": "Apart.", "icon": "🏢", "aliases": ["Condo", "Apartment"]},
+        {"label": "Hotel", "icon": "🏨", "aliases": ["Hotel", "Commercial"]},
     ]
+
+    def derive_focus_location(dataframe):
+        if isinstance(dataframe, pd.DataFrame) and not dataframe.empty and 'area_key' in dataframe.columns:
+            area_series = dataframe['area_key'].dropna()
+            if not area_series.empty:
+                try:
+                    return str(area_series.mode().iloc[0])
+                except Exception:
+                    return str(area_series.iloc[0])
+        return "Thailand"
 
     def determine_active_category(selected_value):
         if not selected_value or selected_value == "All":
@@ -2521,122 +2637,236 @@ def main_dashboard():
         return None
 
     current_choice = st.session_state.get('property_type_choice', "All")
+    hero_focus_location = st.session_state.get('hero_focus_location') or derive_focus_location(df)
+    st.session_state['hero_focus_location'] = hero_focus_location
     st.session_state['hero_category_active'] = determine_active_category(current_choice)
 
-    st.markdown(
-        f"""
-        <div class='hero-shell'>
-            <div class='hero-top'>
-                <div class='hero-profile'>
-                    <span class='hero-eyebrow'>{greeting_text}</span>
-                    <h2>{hero_name}</h2>
-                    <p>{hero_market} intelligence feed</p>
-                </div>
-            </div>
-            <div class='hero-saved-group'>
-                <div class='saved-pill'>
-                    <span class='pill-label'>Saved</span>
-                    <span class='pill-value'>{saved_count}</span>
-                </div>
-                <div class='saved-pill initials-pill'>
-                    <span class='pill-label'>You</span>
-                    <span class='pill-value'>{hero_initials}</span>
-                </div>
-            </div>
-            <div class='hero-search-stack'>
-                <div class='hero-search-bar'>
-        """,
-        unsafe_allow_html=True,
-    )
-    keyword = st.text_input(
-        "Find anything",
-        key="keyword_filter",
-        placeholder="Search projects, districts, banks…",
-        label_visibility="collapsed",
-    )
-    keyword = (keyword or "").strip()
-    st.markdown(
-        """
-                </div>
-                <div class='hero-search-actions'>
-                    <button type='button' class='hero-filter-chip'>Filters</button>
-                    <button type='button' class='hero-voice-pill'>Voice search</button>
-                </div>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("<div class='hero-shell'>", unsafe_allow_html=True)
 
-    with st.container():
-        st.markdown("<div class='hero-toolbar'>", unsafe_allow_html=True)
-        toolbar_cols = st.columns([3, 1], gap="large")
-        with toolbar_cols[0]:
-            st.markdown("<div class='hero-category-stack'>", unsafe_allow_html=True)
-            for cat in hero_categories:
-                target_value = resolve_category_value(cat)
-                is_active = st.session_state.get('hero_category_active') == cat['label']
-                btn_type = "primary" if is_active else "secondary"
-                clicked = st.button(
-                    cat['label'],
-                    key=f"hero_cat_{cat['label']}",
-                    use_container_width=True,
-                    type=btn_type,
-                    disabled=target_value is None,
-                )
-                if clicked:
-                    if target_value:
-                        st.session_state['property_type_choice'] = target_value
-                        st.session_state['property_type_select'] = target_value
-                        st.session_state['hero_category_active'] = cat['label']
-                    else:
-                        st.session_state['property_type_choice'] = "All"
-                        st.session_state['property_type_select'] = "All"
-                        st.session_state['hero_category_active'] = "All"
-            st.markdown("</div>", unsafe_allow_html=True)
-        with toolbar_cols[1]:
-            st.markdown("<div class='hero-dropdown-col'>", unsafe_allow_html=True)
-            reset_clicked = st.button("All Category ▾", key="hero_all_category", use_container_width=True)
-            if reset_clicked:
-                st.session_state['property_type_choice'] = "All"
-                st.session_state['property_type_select'] = "All"
-                st.session_state['hero_category_active'] = "All"
-            st.markdown("</div>", unsafe_allow_html=True)
+    hero_html = compact_html(
+        f"""
+        <div class='hero-topline'>
+            <div class='hero-location-chip'>
+                <div class='hero-location-icon'>📍</div>
+                <div>
+                    <label>Focus area</label>
+                    <strong>{hero_focus_location}</strong>
+                </div>
+            </div>
+            <div class='hero-alert-bubble'>🔔</div>
+        </div>
+        <div class='hero-heading'>
+            <div class='hero-eyebrow-small'>{greeting_text}</div>
+            <h1>Search your house by Jesp</h1>
+            <p>Hand-picked deals for {hero_name} across {hero_focus_location}.</p>
+        </div>
+        """
+    )
+    st.markdown(hero_html, unsafe_allow_html=True)
+
+    total_listings = len(df) if isinstance(df, pd.DataFrame) else 0
+    market_span = "—"
+    if data_price_min and data_price_max and data_price_max > data_price_min:
+        market_span = f"{data_price_min:,.0f} - {data_price_max:,.0f} THB"
+    hero_stats = [
+        ("Active leads", f"{total_listings:,}" if total_listings else "—"),
+        ("Market span", market_span),
+        ("Watchlist", str(saved_count)),
+    ]
+    stat_html = "<div class='stat-slab'>"
+    for label_text, value_text in hero_stats:
+        stat_html += f"<div class='stat-card'><label>{label_text}</label><strong>{value_text}</strong></div>"
+    stat_html += "</div>"
+    st.markdown(stat_html, unsafe_allow_html=True)
+
+    st.markdown("<div class='hero-search-group'>", unsafe_allow_html=True)
+    search_cols = st.columns([5, 1, 1], gap="small")
+    with search_cols[0]:
+        st.markdown("<div class='search-pill-shell'>", unsafe_allow_html=True)
+        keyword = st.text_input(
+            "Find anything",
+            key="keyword_filter",
+            placeholder="Search by locations",
+            label_visibility="collapsed",
+        )
+        keyword = (keyword or "").strip()
+        st.markdown("</div>", unsafe_allow_html=True)
+    with search_cols[1]:
+        st.markdown("<div class='round-icon-button'>", unsafe_allow_html=True)
+        st.button("Filters", key="filters_trigger", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    with search_cols[2]:
+        st.markdown("<div class='round-icon-button'>", unsafe_allow_html=True)
+        st.button("Voice", key="voice_trigger", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    with st.container():
-        st.markdown("<div class='top-control-row'>", unsafe_allow_html=True)
-        top_nav_cols = st.columns([1.5, 1.2, 0.9, 0.8], gap="medium")
-        with top_nav_cols[0]:
-            default_index = 0 if lang == "English" else 1
-            lang = st.selectbox("Language", ["English", "ไทย"], index=default_index, key="lang_select")
-        with top_nav_cols[1]:
-            show_original = st.checkbox("Show original text", value=show_original, key="show_original")
-        with top_nav_cols[2]:
-            heart_class = "heart-control saved-active" if st.session_state['view_mode'] == 'saved' else "heart-control"
-            st.markdown(f"<div class='{heart_class}'>", unsafe_allow_html=True)
-            heart_clicked = st.button(
-                f"❤️ {saved_count}",
-                key="saved_heart",
-                help="View your saved properties",
+    st.markdown("<div class='category-pills'>", unsafe_allow_html=True)
+    category_cols = st.columns(len(hero_categories) + 1, gap="small")
+    with category_cols[0]:
+        is_active = st.session_state.get('hero_category_active') == "All"
+        btn_type = "primary" if is_active else "secondary"
+        if st.button("✨ All", key="hero_cat_all", type=btn_type):
+            st.session_state['property_type_choice'] = "All"
+            st.session_state['property_type_select'] = "All"
+            st.session_state['hero_category_active'] = "All"
+    for idx, cat in enumerate(hero_categories, start=1):
+        with category_cols[idx]:
+            target_value = resolve_category_value(cat)
+            is_active = st.session_state.get('hero_category_active') == cat['label']
+            btn_type = "primary" if is_active else "secondary"
+            cat_key = re.sub(r'[^A-Za-z0-9]+', '_', cat['label'])
+            clicked = st.button(
+                f"{cat['icon']} {cat['label']}",
+                key=f"hero_cat_{cat_key}",
                 use_container_width=True,
-                disabled=not username,
+                type=btn_type,
+                disabled=target_value is None,
             )
-            st.markdown("</div>", unsafe_allow_html=True)
-            if heart_clicked:
-                new_mode = 'all' if st.session_state['view_mode'] == 'saved' else 'saved'
-                st.session_state['view_mode'] = new_mode
-                st.session_state['bottom_nav_active'] = 'Wishlist' if new_mode == 'saved' else 'Home'
-        with top_nav_cols[3]:
-            if authentication_status:
-                if st.button("Logout", key="logout_button_top"):
-                    logout_user()
-            else:
-                st.markdown("<div class='nav-chip'>Guest mode</div>", unsafe_allow_html=True)
+            if clicked:
+                if target_value:
+                    st.session_state['property_type_choice'] = target_value
+                    st.session_state['property_type_select'] = target_value
+                    st.session_state['hero_category_active'] = cat['label']
+                else:
+                    st.session_state['property_type_choice'] = "All"
+                    st.session_state['property_type_select'] = "All"
+                    st.session_state['hero_category_active'] = "All"
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='control-bar'>", unsafe_allow_html=True)
+    control_cols = st.columns([1.1, 0.9, 0.7, 0.9], gap="small")
+    with control_cols[0]:
+        default_index = 0 if lang == "English" else 1
+        lang = st.selectbox("Language", ["English", "ไทย"], index=default_index, key="lang_select")
+    with control_cols[1]:
+        show_original = st.checkbox("Show original text", value=show_original, key="show_original")
+    with control_cols[2]:
+        heart_class = "heart-control saved-active" if st.session_state['view_mode'] == 'saved' else "heart-control"
+        st.markdown(f"<div class='{heart_class}'>", unsafe_allow_html=True)
+        heart_clicked = st.button(
+            f"❤️ {saved_count}",
+            key="saved_heart",
+            help="View your saved properties",
+            use_container_width=True,
+            disabled=not username,
+        )
         st.markdown("</div>", unsafe_allow_html=True)
+        if heart_clicked and username:
+            new_mode = 'all' if st.session_state['view_mode'] == 'saved' else 'saved'
+            st.session_state['view_mode'] = new_mode
+            st.session_state['bottom_nav_active'] = 'Wishlist' if new_mode == 'saved' else 'Home'
+        if heart_clicked and not username:
+            st.toast("Sign in to manage your wishlist")
+    with control_cols[3]:
+        if authentication_status:
+            if st.button("Logout", key="logout_button_top"):
+                logout_user()
+        else:
+            st.markdown("<div class='nav-chip'>Guest mode</div>", unsafe_allow_html=True)
+            with st.popover("Login to save"):
+                render_inline_login_controls(inline=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if not authentication_status:
         render_inline_login_controls()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if isinstance(df, pd.DataFrame) and not df.empty:
+        recommend_df = df.head(4)
+        if not recommend_df.empty:
+            st.markdown(
+                "<div class='recommend-title'><h3>Recommended for you</h3><span class='nav-chip'>Fresh intel</span></div>",
+                unsafe_allow_html=True,
+            )
+            cards_html = "<div class='recommend-cards'>"
+            for _, rec_row in recommend_df.iterrows():
+                card_id = rec_row.get('id')
+                card_href = build_query_string(photo=str(card_id), photo_idx="0") if card_id else None
+                if not card_href and card_id:
+                    card_href = f"?photo={card_id}&photo_idx=0"
+                card_href = card_href or "#top-anchor"
+                photo_url = extract_primary_photo(rec_row.get('photos')) or "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=800&q=60"
+                title_display = clean_text_field(rec_row.get('title_en') or rec_row.get('title'), 'New opportunity')
+                location_display = clean_text_field(rec_row.get('location_en') or rec_row.get('location'), 'Location pending')
+                price_display = format_price(rec_row.get('price'))
+                location_chip = location_display.split('|')[0].strip()
+                rating_value = rec_row.get('total_rating') or rec_row.get('investment_rating')
+                try:
+                    rating_display = f"{float(rating_value):.1f}" if rating_value else "—"
+                except (TypeError, ValueError):
+                    rating_display = "—"
+                beds_display = format_count(rec_row.get('bedrooms')) or format_count(rec_row.get('rooms')) or "—"
+                baths_display = format_count(rec_row.get('bathrooms')) or format_count(rec_row.get('bath_count')) or "—"
+                meta_bits = []
+                if location_chip:
+                    meta_bits.append(f"📍 {location_chip}")
+                if rating_display != "—":
+                    meta_bits.append(f"⭐ {rating_display}")
+                if beds_display and beds_display != "—":
+                    meta_bits.append(f"🛏 {beds_display} Bed")
+                if baths_display and baths_display != "—":
+                    meta_bits.append(f"🛁 {baths_display} Bath")
+                meta_html = "".join(f"<span class='meta-pill'>{bit}</span>" for bit in meta_bits) or "<span class='meta-pill'>Details loading…</span>"
+                badge_text = display_sale_channel((rec_row.get('sale_channel') or 'standard').lower()) or "Best deal"
+                is_saved = card_id in saved_ids if card_id else False
+                heart_symbol = "♥" if is_saved else "♡"
+                heart_class = "recommend-heart saved" if is_saved else "recommend-heart"
+                cards_html += compact_html(
+                    f"""
+                    <a class='recommend-card' href='{card_href}'>
+                        <div class='recommend-media'>
+                            <img src='{photo_url}' alt='{title_display}' loading='lazy'/>
+                            <span class='card-badge'>{badge_text}</span>
+                            <span class='{heart_class}'>{heart_symbol}</span>
+                        </div>
+                        <div class='recommend-body'>
+                            <div class='card-headline'>
+                                <div>
+                                    <p>{location_display}</p>
+                                    <h4>{title_display}</h4>
+                                </div>
+                                <strong class='rec-price'>{price_display}</strong>
+                            </div>
+                            <div class='card-meta-row'>
+                                {meta_html}
+                            </div>
+                        </div>
+                    </a>
+                    """
+                )
+            cards_html += "</div>"
+            st.markdown(cards_html, unsafe_allow_html=True)
+
+    st.markdown("<div class='bottom-nav'>", unsafe_allow_html=True)
+    nav_items = [
+        ("Home", "🏠"),
+        ("Insights", "📈"),
+        ("Wishlist", "❤️"),
+        ("Account", "👤"),
+    ]
+    nav_cols = st.columns(len(nav_items), gap="small")
+    for idx, (nav_label, nav_icon) in enumerate(nav_items):
+        is_active = st.session_state.get('bottom_nav_active', 'Home') == nav_label
+        btn_type = "primary" if is_active else "secondary"
+        clicked = nav_cols[idx].button(f"{nav_icon}  {nav_label}", key=f"bottom_nav_{nav_label}", type=btn_type)
+        if clicked:
+            st.session_state['bottom_nav_active'] = nav_label
+            if nav_label == 'Home':
+                st.session_state['view_mode'] = 'all'
+                st.session_state['focus_section'] = None
+            elif nav_label == 'Wishlist':
+                if username:
+                    st.session_state['view_mode'] = 'saved'
+                else:
+                    st.toast("Sign in to open wishlist")
+                    st.session_state['bottom_nav_active'] = 'Home'
+            elif nav_label == 'Account':
+                st.session_state['account_panel_open'] = not st.session_state.get('account_panel_open', False)
+            elif nav_label == 'Insights':
+                st.session_state['focus_section'] = 'insights'
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if st.session_state.get('account_panel_open'):
         st.markdown("<div id='account-section'></div>", unsafe_allow_html=True)
@@ -3293,37 +3523,6 @@ def main_dashboard():
                         if not location_t:
                             location_t = native_location
 
-                        map_action_html = ""
-                        map_links = build_map_links(row.get('lat'), row.get('lon'), native_location)
-                        if map_links:
-                            actions = []
-                            if map_links.get('google'):
-                                actions.append(
-                                    f"<a class=\"map-icon google\" href=\"{map_links['google']}\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Google Maps\"><span>G</span></a>"
-                                )
-                            if map_links.get('apple'):
-                                actions.append(
-                                    f"<a class=\"map-icon apple\" href=\"{map_links['apple']}\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Apple Maps\"><span>A</span></a>"
-                                )
-                            if actions:
-                                map_action_html = compact_html(
-                                    f"""
-                                    <div class='map-action-row inline'>
-                                        <span class='map-action-label'>Directions</span>
-                                        {''.join(actions)}
-                                    </div>
-                                    """
-                                )
-                        if not map_action_html:
-                            map_action_html = compact_html(
-                                """
-                                <div class='map-action-row inline placeholder'>
-                                    <span class='map-action-label'>Directions</span>
-                                    <span class='map-placeholder'>N/A</span>
-                                </div>
-                                """
-                            )
-
                         photos = extract_all_photos(row.get('photos'))
                         first_photo = next(
                             (url for url in photos if looks_like_property_photo(url)),
@@ -3332,21 +3531,10 @@ def main_dashboard():
                         property_type_display = row.get('property_type') or normalize_property_type(row.get('property_type'), row.get('title')) or 'Property'
                         property_type_display = clean_text_field(property_type_display, 'Property')
                         photo_count = len(photos)
-                        photo_count_label = f"{photo_count} photo{'s' if photo_count != 1 else ''} · Quick view"
+                        photo_count_label = f"{photo_count} photo{'s' if photo_count != 1 else ''}"
                         photo_href = "#"
                         if property_id is not None:
                             photo_href = build_query_string(photo=str(property_id), photo_idx='0') or f"?photo={property_id}"
-                        photo_html = compact_html(
-                            f"""
-                            <a class='photo-link' href='{photo_href}' target='_self'>
-                                <img src='{first_photo}' alt='property photo' loading='lazy'/>
-                                <div class='photo-overlay'>
-                                    <span class='overlay-pill'>{property_type_display}</span>
-                                    <span class='overlay-link'>{photo_count_label}</span>
-                                </div>
-                            </a>
-                            """
-                        )
 
                         raw_price = row.get('price')
                         try:
@@ -3389,129 +3577,12 @@ def main_dashboard():
                             bed_meta_label = l['beds']
                         bath_count_display = format_count(row.get('bathrooms')) or format_count(row.get('bath_count')) or "—"
 
-                        area_key = row.get('area_key') or normalize_area_label(row.get('location'))
-                        area_avg_price = avg_price_by_area.get(area_key) if area_key else None
-                        price_ratio = None
-                        if area_avg_price and price_value_num and area_avg_price > 0:
-                            price_ratio = price_value_num / area_avg_price
-                        pricing_text, pricing_class = classify_price_ratio(price_ratio)
-                        if price_ratio is not None:
-                            indicator_percent = min(max(price_ratio, 0), 1.6) / 1.6 * 100
-                            avg_price_display = format_price(area_avg_price)
-                            price_bar_html = compact_html(
-                                f"""
-                                <div class='price-bar-wrapper'>
-                                    <div class='price-bar-track'>
-                                        <div class='price-bar-indicator' style='left:{indicator_percent:.0f}%;'></div>
-                                    </div>
-                                    <div class='price-bar-labels'>
-                                        <span>Cheaper</span>
-                                        <span>Market</span>
-                                        <span>Premium</span>
-                                    </div>
-                                    <div class='price-compare {pricing_class}'>
-                                        {pricing_text} · Area avg {avg_price_display}
-                                    </div>
-                                </div>
-                                """
-                            )
-                        else:
-                            price_bar_html = compact_html(
-                                """
-                                <div class='price-bar-wrapper spacer'>
-                                    <div class='price-compare fair'>Not enough comps for this area yet.</div>
-                                </div>
-                                """
-                            )
-
                         sale_channel_value = (row.get('sale_channel') or 'standard').lower()
                         sale_label = display_sale_channel(sale_channel_value)
                         bank_display = ''
                         if sale_label.lower().startswith('foreclosure') and bank_t and bank_t.lower() not in ('n/a', 'na', '-'):
                             bank_display = f" · {bank_t}"
                         sale_html = f"<div class='sale-pill'>{sale_label}{bank_display}</div>"
-
-                        stats_row_html = compact_html(
-                            f"""
-                            <div class='card-stat-row'>
-                                <div class='stat-chip'>
-                                    <span>{l['size_label']}</span>
-                                    <strong>{size_display}</strong>
-                                </div>
-                                <div class='stat-chip'>
-                                    <span>{l['land_size']}</span>
-                                    <strong>{land_display}</strong>
-                                </div>
-                                <div class='stat-chip'>
-                                    <span>{bed_meta_label}</span>
-                                    <strong>{beds_value}</strong>
-                                </div>
-                                <div class='stat-chip'>
-                                    <span>{l['baths']}</span>
-                                    <strong>{bath_count_display}</strong>
-                                </div>
-                            </div>
-                            """
-                        )
-
-                        value_insights_html = compact_html(
-                            f"""
-                            <div class='value-grid'>
-                                <div class='value-chip'>
-                                    <div class='value-chip-header'>
-                                        <span class='value-icon'>💰</span>
-                                        <span class='value-label'>{l['rent_estimate']}</span>
-                                    </div>
-                                    <strong>{rent_display}</strong>
-                                </div>
-                                <div class='value-chip'>
-                                    <div class='value-chip-header'>
-                                        <span class='value-icon'>📊</span>
-                                        <span class='value-label'>{l['investment_rating']}</span>
-                                    </div>
-                                    <strong>{investment_display}</strong>
-                                </div>
-                            </div>
-                            """
-                        )
-
-                        if not username:
-                            save_html = "<span class='login-hint'>Login to save</span>"
-                        elif property_id is not None:
-                            is_saved = property_id in saved_ids
-                            save_link = build_query_string(
-                                photo=None,
-                                photo_idx=None,
-                                save=str(property_id),
-                                save_op='remove' if is_saved else 'add'
-                            ) or f"?save={property_id}&save_op={'remove' if is_saved else 'add'}"
-                            heart_class = "cta-heart saved" if is_saved else "cta-heart"
-                            heart_label = "💙 Saved" if is_saved else "🤍 Save"
-                            save_html = f"<a class='{heart_class}' href='{save_link}' onclick='event.stopPropagation();'>{heart_label}</a>"
-                        else:
-                            save_html = ''
-
-                        pricing_secondary = pricing_text if price_ratio is not None else "Awaiting comps"
-                        if not save_html:
-                            save_html = "<span></span>"
-
-                        location_html = compact_html(
-                            f"""
-                            <div class='location-eyebrow'>
-                                <span>📍 {location_t}</span>
-                                <span class='rating-pill'>⭐ {living_rating}</span>
-                            </div>
-                            """
-                        )
-
-                        contact_bits = []
-                        if contact_t and contact_t.lower() not in ("n/a", "na", "-", "—"):
-                            contact_bits.append(f"<div class='contact-chip'>📞 {contact_t[:28]}</div>")
-                        if bank_t and bank_t.lower() not in ("n/a", "na", "-", "—"):
-                            contact_bits.append(f"<div class='contact-chip'>🏦 {bank_t[:24]}</div>")
-                        contact_html = "".join(contact_bits)
-                        if contact_html:
-                            contact_html = f"<div class='card-contact-row'>{contact_html}</div>"
 
                         detail_href = "#"
                         if property_id is not None:
@@ -3521,14 +3592,66 @@ def main_dashboard():
                                 photo_idx=None
                             ) or f"?detail={property_id}"
 
-                        cta_row_html = compact_html(
+                        if not username:
+                            save_html = "<span class='icon-btn heart disabled' title='Login to save'></span>"
+                        elif property_id is not None:
+                            is_saved = property_id in saved_ids
+                            save_link = build_query_string(
+                                photo=None,
+                                photo_idx=None,
+                                save=str(property_id),
+                                save_op='remove' if is_saved else 'add'
+                            ) or f"?save={property_id}&save_op={'remove' if is_saved else 'add'}"
+                            heart_class = "icon-btn heart saved" if is_saved else "icon-btn heart"
+                            save_html = f"<a class='{heart_class}' href='{save_link}' onclick='event.stopPropagation();' aria-label='Save listing'></a>"
+                        else:
+                            save_html = ""
+
+                        share_html = f"<a class='icon-btn share' href='{detail_href}' onclick=\"event.stopPropagation();\" aria-label='Share listing'></a>" if property_id is not None else ""
+
+                        photo_html = compact_html(
                             f"""
-                            <div class='card-cta-row'>
+                            <a class='card-photo' href='{photo_href}' onclick="event.stopPropagation();" target='_self'>
+                                <img src='{first_photo}' alt='Photo of {title_t}' loading='lazy'/>
+                                <div class='photo-top-row'>
+                                    <span class='photo-pill'>{property_type_display}</span>
+                                    <div class='photo-actions'>
+                                        {save_html}
+                                        {share_html}
+                                    </div>
+                                </div>
+                                <div class='photo-bottom-row'>
+                                    <span class='photo-pill'>{photo_count_label}</span>
+                                    <div class='photo-actions'>
+                                        {sale_html}
+                                    </div>
+                                </div>
+                            </a>
+                            """
+                        )
+
+                        agent_name = contact_t if contact_t and contact_t.lower() not in ("n/a", "na", "-", "—") else "Agent contact pending"
+                        agent_meta = bank_t if bank_t and bank_t.lower() not in ("n/a", "na", "-", "—") else sale_label
+                        agent_html = compact_html(
+                            f"""
+                            <div class='agent-chip'>
+                                <div class='agent-avatar'>👤</div>
+                                <div>
+                                    <strong>{agent_name}</strong>
+                                    <span>{agent_meta}</span>
+                                </div>
+                            </div>
+                            """
+                        )
+
+                        price_block_html = compact_html(
+                            f"""
+                            <div class='price-cta-row'>
                                 <div class='price-stack'>
-                                    <span>Price</span>
+                                    <span>{l['price']}</span>
                                     <strong>{price_display}</strong>
                                 </div>
-                                <a class='buy-pill' href='{detail_href}' onclick="event.stopPropagation();"><span class='pill-icon'>🛒</span>View Detail ↗</a>
+                                <a class='buy-pill' href='{detail_href}' onclick="event.stopPropagation();">Buy Now</a>
                             </div>
                             """
                         )
@@ -3537,33 +3660,12 @@ def main_dashboard():
                             f"""
                             <div class="property-card">
                                 {photo_html}
-                                <div class="card-detail-link" role="link" tabindex="0" onclick="window.location='{detail_href}'" onkeypress="if(event.key==='Enter' || event.key===' '){{window.location='{detail_href}'}}">
-                                    <div class="card-compact">
-                                        <div class="card-tags">
-                                            {sale_html}
-                                            <span class="type-chip">{property_type_display}</span>
-                                        </div>
-                                        <div class="card-top-row">
-                                            <h4>{title_t}</h4>
-                                            <div class="price-chip">
-                                                <div class="primary">{price_display}</div>
-                                                <div class="secondary">{pricing_secondary}</div>
-                                            </div>
-                                        </div>
-                                        {location_html}
-                                        {contact_html or ''}
-                                        {price_bar_html}
-                                        {map_action_html}
-                                        {stats_row_html}
-                                        {value_insights_html}
-                                        {cta_row_html}
-                                        <div class="card-footer-row">
-                                            <span class="pricing-hint {pricing_class}">{pricing_text}</span>
-                                            <div class="card-footer-actions">
-                                                {save_html}
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="card-body" role="link" tabindex="0" onclick="window.location='{detail_href}'" onkeypress="if(event.key==='Enter' || event.key===' '){{window.location='{detail_href}'}}">
+                                    <h4>{title_t}</h4>
+                                    <p class='card-location'>📍 {location_t}</p>
+                                    {specs_html}
+                                    {agent_html}
+                                    {price_block_html}
                                 </div>
                             </div>
                             """
