@@ -14,6 +14,11 @@ import streamlit as st
 from dotenv import load_dotenv
 from google.cloud import translate as translate_client
 
+load_dotenv()
+DB_URL = os.getenv("DATABASE_URL")
+if not DB_URL:
+    st.warning("DATABASE_URL is not set. Update your .env or environment variables to enable database access.")
+
 TAG_RE = re.compile(r"<[^>]+>")
 PROPERTY_KEYWORDS = {
     "Townhouse": ["ทาวน์", "townhome", "town house", "townhouse"],
