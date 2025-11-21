@@ -2314,15 +2314,21 @@ def render_inline_login_controls(inline=False):
     if st.session_state.auth_status:
         return
 
+    suffix = "inline" if inline else "standalone"
+    form_key = f"inline_login_form_{suffix}"
+    email_key = f"inline_email_{suffix}"
+    password_key = f"inline_password_{suffix}"
+    remember_key = f"inline_remember_{suffix}"
+
     def login_body():
         st.caption("Default admin credentials → **admin / admin123**")
         login_error = st.session_state.get('login_error')
         if login_error:
             st.error(login_error)
-        with st.form("inline_login_form"):
-            email = st.text_input("Email", value=st.session_state.get('pending_email', ''), placeholder="you@example.com", key="inline_email")
-            password = st.text_input("Password", type="password", key="inline_password")
-            remember = st.checkbox("Remember me", value=True, key="inline_remember")
+        with st.form(form_key):
+            email = st.text_input("Email", value=st.session_state.get('pending_email', ''), placeholder="you@example.com", key=email_key)
+            password = st.text_input("Password", type="password", key=password_key)
+            remember = st.checkbox("Remember me", value=True, key=remember_key)
             submitted = st.form_submit_button("Login")
         if submitted:
             st.session_state.pending_email = email
