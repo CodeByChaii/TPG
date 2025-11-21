@@ -251,6 +251,14 @@ st.markdown(
         gap: 4px;
     }
 
+    .meta-pill .meta-icon {
+        width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
     .bottom-nav {
         margin-top: 28px;
         padding: 12px 18px;
@@ -549,10 +557,13 @@ st.markdown(
         border-radius: 999px;
         border: 1px solid rgba(15,23,42,0.08);
         background: rgba(255,255,255,0.88);
-        padding: 12px 20px;
+        padding: 12px 20px 12px 64px;
         font-weight: 600;
         color: #0F172A;
         box-shadow: 0 12px 24px rgba(15,23,42,0.1);
+        scroll-snap-align: start;
+        position: relative;
+        text-align: left;
     }
 
     .category-pills .stButton > button[data-testid="baseButton-primary"],
@@ -561,6 +572,41 @@ st.markdown(
         color: #fff;
         border: none;
         box-shadow: 0 16px 30px rgba(109,141,255,0.35);
+    }
+
+    .category-pills .stButton > button::before {
+        content: "";
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+        box-shadow: inset 0 0 0 2px rgba(255,255,255,0.8), 0 10px 18px rgba(15,23,42,0.12);
+        background-size: cover;
+        background-position: center;
+    }
+
+    .category-pills .stButton:nth-child(1) > button::before {
+        background-image: url('https://images.unsplash.com/photo-1505692794400-4d1b9f38cafb?auto=format&fit=crop&w=200&q=60');
+    }
+
+    .category-pills .stButton:nth-child(2) > button::before {
+        background-image: url('https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=200&q=60');
+    }
+
+    .category-pills .stButton:nth-child(3) > button::before {
+        background-image: url('https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=200&q=60');
+    }
+
+    .category-pills .stButton:nth-child(4) > button::before {
+        background-image: url('https://images.unsplash.com/photo-1464146072230-91cabc968266?auto=format&fit=crop&w=200&q=60');
+    }
+
+    .category-pills .stButton:nth-child(5) > button::before {
+        background-image: url('https://images.unsplash.com/photo-1479839672679-a46483c0e7c8?auto=format&fit=crop&w=200&q=60');
     }
 
     .control-bar {
@@ -2801,14 +2847,19 @@ def main_dashboard():
                 baths_display = format_count(rec_row.get('bathrooms')) or format_count(rec_row.get('bath_count')) or "—"
                 meta_bits = []
                 if location_chip:
-                    meta_bits.append(f"📍 {location_chip}")
+                    meta_bits.append(("📍", location_chip))
                 if rating_display != "—":
-                    meta_bits.append(f"⭐ {rating_display}")
+                    meta_bits.append(("⭐", rating_display))
                 if beds_display and beds_display != "—":
-                    meta_bits.append(f"🛏 {beds_display} Bed")
+                    meta_bits.append(("🛏", f"{beds_display} Bed"))
                 if baths_display and baths_display != "—":
-                    meta_bits.append(f"🛁 {baths_display} Bath")
-                meta_html = "".join(f"<span class='meta-pill'>{bit}</span>" for bit in meta_bits) or "<span class='meta-pill'>Details loading…</span>"
+                    meta_bits.append(("🛁", f"{baths_display} Bath"))
+                if not meta_bits:
+                    meta_bits.append(("ℹ️", "Details loading…"))
+                meta_html = "".join(
+                    f"<span class='meta-pill'><span class='meta-icon'>{icon}</span>{text}</span>"
+                    for icon, text in meta_bits[:4]
+                )
                 badge_text = display_sale_channel((rec_row.get('sale_channel') or 'standard').lower()) or "Best deal"
                 is_saved = card_id in saved_ids if card_id else False
                 heart_symbol = "♥" if is_saved else "♡"
